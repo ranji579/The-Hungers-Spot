@@ -18,9 +18,9 @@ import {
 } from '@/data/initialData';
 import { sounds } from '@/utils/audio';
 
-const STORAGE_KEY_MENU = 'ths_menu_items_inr_v3';
-const STORAGE_KEY_TABLES = 'ths_tables_inr_v3';
-const STORAGE_KEY_ORDERS = 'ths_orders_inr_v3';
+const STORAGE_KEY_MENU = 'ths_menu_items_inr_v4';
+const STORAGE_KEY_TABLES = 'ths_tables_inr_v4';
+const STORAGE_KEY_ORDERS = 'ths_orders_inr_v4';
 
 interface RestaurantContextType {
   menuItems: MenuItem[];

@@ -171,7 +171,7 @@ export const CustomerView: React.FC = () => {
             <Search size={18} color="var(--text-muted)" style={{ position: 'absolute', left: '14px', top: '13px' }} />
             <input
               type="text"
-              placeholder="Search burgers, pizzas, steaks, drinks..."
+              placeholder="Search biryani, chicken 65, gravies, naans, noodles..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{

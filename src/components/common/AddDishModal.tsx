@@ -27,12 +27,12 @@ interface AddDishModalProps {
 }
 
 const PRESET_IMAGES = [
-  { label: 'Burger', url: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80' },
-  { label: 'Pizza', url: 'https://images.unsplash.com/photo-1604382355076-af4b0eb60143?auto=format&fit=crop&w=800&q=80' },
-  { label: 'Steak', url: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80' },
-  { label: 'Fries', url: 'https://images.unsplash.com/photo-1576107232684-1279f3908594?auto=format&fit=crop&w=800&q=80' },
-  { label: 'Drink', url: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=800&q=80' },
-  { label: 'Dessert', url: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=800&q=80' }
+  { label: 'Biryani', url: '/images/dishes/ambur_chicken_biryani.jpg' },
+  { label: 'Chicken 65', url: '/images/dishes/chicken_65.jpg' },
+  { label: 'Chicken Lollipop', url: '/images/dishes/chicken_lollipop.jpg' },
+  { label: 'Curry / Gravy', url: 'https://images.unsplash.com/photo-1588166524941-3bf61a9c41db?auto=format&fit=crop&w=800&q=80' },
+  { label: 'Rice / Noodles', url: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&w=800&q=80' },
+  { label: 'Tandoori Naan', url: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=800&q=80' }
 ];
 
 export const AddDishModal: React.FC<AddDishModalProps> = ({
@@ -43,7 +43,7 @@ export const AddDishModal: React.FC<AddDishModalProps> = ({
   onSubmit
 }) => {
   const [name, setName] = useState('');
-  const [category, setCategory] = useState('Appetizers');
+  const [category, setCategory] = useState('Chicken Starters');
   const [price, setPrice] = useState('');
   const [dietary, setDietary] = useState<'veg' | 'non-veg' | 'vegan'>('veg');
   const [description, setDescription] = useState('');
@@ -177,12 +177,16 @@ export const AddDishModal: React.FC<AddDishModalProps> = ({
                 onChange={(e) => setCategory(e.target.value)}
                 style={{ width: '100%', fontSize: '13px' }}
               >
-                <option value="Appetizers">Appetizers</option>
-                <option value="Burgers & Steaks">Burgers &amp; Steaks</option>
-                <option value="Pizzas & Pasta">Pizzas &amp; Pasta</option>
-                <option value="Mains">Mains</option>
-                <option value="Beverages">Beverages</option>
-                <option value="Desserts">Desserts</option>
+                <option value="Chef's Special">Chef's Special</option>
+                <option value="Chicken Starters">Chicken Starters</option>
+                <option value="Mutton Starters">Mutton Starters</option>
+                <option value="Seafood Starters">Seafood Starters</option>
+                <option value="Chicken Gravies">Chicken Gravies</option>
+                <option value="Mutton Gravies">Mutton Gravies</option>
+                <option value="Seafood Curries">Seafood Curries</option>
+                <option value="Rice & Noodles">Rice &amp; Noodles</option>
+                <option value="Vegetarian Corner">Vegetarian Corner</option>
+                <option value="Breads & Rotis">Breads &amp; Rotis</option>
               </select>
             </div>
 
