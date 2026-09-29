@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { MenuItem } from '@/types/restaurant';
 import {
   X,
   Upload,
@@ -16,6 +17,7 @@ interface AddDishModalProps {
   onClose: () => void;
   title?: string;
   submitLabel?: string;
+  initialItem?: MenuItem | null;
   onSubmit: (dishData: {
     name: string;
     category: string;
@@ -40,6 +42,7 @@ export const AddDishModal: React.FC<AddDishModalProps> = ({
   onClose,
   title = 'Add New Menu Item',
   submitLabel = 'Add to Menu',
+  initialItem,
   onSubmit
 }) => {
   const [name, setName] = useState('');
@@ -56,6 +59,41 @@ export const AddDishModal: React.FC<AddDishModalProps> = ({
   const [isDragging, setIsDragging] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Sync state whenever modal opens or initialItem changes
+  useEffect(() => {
+    if (isOpen) {
+      if (initialItem) {
+        setName(initialItem.name);
+        setCategory(initialItem.category);
+        setPrice(initialItem.price.toString());
+        setDietary(initialItem.dietary);
+        setDescription(initialItem.description);
+        if (initialItem.image && initialItem.image.startsWith('data:')) {
+          setImageSource('local');
+          setLocalImagePreview(initialItem.image);
+          setLocalFileName('Current Uploaded Image');
+          setImageUrl('');
+        } else {
+          setImageSource('url');
+          setImageUrl(initialItem.image || '');
+          setLocalImagePreview(null);
+          setLocalFileName(null);
+        }
+      } else {
+        setName('');
+        setCategory('Chicken Starters');
+        setPrice('');
+        setDietary('veg');
+        setDescription('');
+        setImageSource('local');
+        setImageUrl('');
+        setLocalImagePreview(null);
+        setLocalFileName(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    }
+  }, [isOpen, initialItem]);
 
   if (!isOpen) return null;
 
@@ -108,6 +146,8 @@ export const AddDishModal: React.FC<AddDishModalProps> = ({
       finalImage = localImagePreview;
     } else if (imageUrl.trim()) {
       finalImage = imageUrl.trim();
+    } else if (initialItem?.image) {
+      finalImage = initialItem.image;
     } else {
       // Default fallback
       finalImage = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80';
@@ -122,13 +162,6 @@ export const AddDishModal: React.FC<AddDishModalProps> = ({
       image: finalImage
     });
 
-    // Reset form
-    setName('');
-    setCategory('Appetizers');
-    setPrice('');
-    setDietary('veg');
-    setDescription('');
-    clearImage();
     onClose();
   };
 

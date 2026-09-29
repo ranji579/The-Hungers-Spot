@@ -12,6 +12,7 @@ import {
   CheckCircle,
   AlertCircle,
   Edit2,
+  Edit3,
   Trash2,
   Plus,
   Save,
@@ -32,6 +33,7 @@ export const OwnerView: React.FC = () => {
     menuItems,
     updateOrderStatus,
     updateItemPrice,
+    updateMenuItem,
     addMenuItem,
     removeMenuItem,
     toggleItemAvailability,
@@ -42,6 +44,7 @@ export const OwnerView: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'orders' | 'tables' | 'menu' | 'yearly'>('orders');
   const [selectedTableForDetails, setSelectedTableForDetails] = useState<number | null>(null);
+  const [editingDishItem, setEditingDishItem] = useState<MenuItem | null>(null);
 
   // Price editing state
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
@@ -97,6 +100,20 @@ export const OwnerView: React.FC = () => {
       isAvailable: true,
       preparationTimeMinutes: 15
     });
+  };
+
+  const handleSaveDishEdit = (dishData: {
+    name: string;
+    category: string;
+    description: string;
+    price: number;
+    dietary: 'veg' | 'non-veg' | 'vegan';
+    image: string;
+  }) => {
+    if (editingDishItem) {
+      updateMenuItem(editingDishItem.id, dishData);
+      setEditingDishItem(null);
+    }
   };
 
   const selectedYearData = yearlyRevenue.find(y => y.year === selectedYear) || yearlyRevenue[yearlyRevenue.length - 1];
@@ -673,14 +690,24 @@ export const OwnerView: React.FC = () => {
                           </button>
                         </td>
                         <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                          <button
-                            onClick={() => removeMenuItem(item.id)}
-                            className="btn-icon"
-                            style={{ width: '30px', height: '30px', color: 'var(--color-danger)' }}
-                            title="Remove item"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
+                            <button
+                              onClick={() => setEditingDishItem(item)}
+                              className="btn-icon"
+                              style={{ width: '30px', height: '30px', color: 'var(--color-primary)' }}
+                              title="Edit dish name, image, and details"
+                            >
+                              <Edit3 size={14} />
+                            </button>
+                            <button
+                              onClick={() => removeMenuItem(item.id)}
+                              className="btn-icon"
+                              style={{ width: '30px', height: '30px', color: 'var(--color-danger)' }}
+                              title="Remove item"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -791,13 +818,23 @@ export const OwnerView: React.FC = () => {
         </div>
       )}
 
-      {/* Add New Dish Modal with local image & URL upload options */}
+      {/* Add New Dish Modal */}
       <AddDishModal
         isOpen={isAddItemOpen}
         onClose={() => setIsAddItemOpen(false)}
         title="Owner: Add New Menu Item"
         submitLabel="Add to Live Menu"
         onSubmit={handleCreateItem}
+      />
+
+      {/* Edit Dish Modal (Change Name, Image, Price & Details) */}
+      <AddDishModal
+        isOpen={editingDishItem !== null}
+        onClose={() => setEditingDishItem(null)}
+        initialItem={editingDishItem}
+        title={editingDishItem ? `Edit Dish: ${editingDishItem.name}` : 'Edit Dish'}
+        submitLabel="Save Changes"
+        onSubmit={handleSaveDishEdit}
       />
     </div>
   );

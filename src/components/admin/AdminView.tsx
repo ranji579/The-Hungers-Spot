@@ -12,6 +12,7 @@ import {
   Printer,
   ExternalLink,
   Plus,
+  Edit3,
   Trash2,
   CheckCircle,
   FileSpreadsheet,
@@ -22,11 +23,14 @@ import {
 } from 'lucide-react';
 import { AddDishModal } from '@/components/common/AddDishModal';
 
+import { MenuItem } from '@/types/restaurant';
+
 export const AdminView: React.FC = () => {
   const {
     tables,
     menuItems,
     addMenuItem,
+    updateMenuItem,
     removeMenuItem,
     toggleItemAvailability,
     yearlyRevenue,
@@ -40,8 +44,9 @@ export const AdminView: React.FC = () => {
   // QR Code canvas elements
   const qrCanvasRefs = useRef<{ [key: number]: HTMLCanvasElement | null }>({});
 
-  // Add Item Modal
+  // Add / Edit Item Modals
   const [isAddItemOpen, setIsAddItemOpen] = useState(false);
+  const [editingDishItem, setEditingDishItem] = useState<MenuItem | null>(null);
 
   // Selected Year for Analytics
   const [selectedYear, setSelectedYear] = useState<number>(2026);
@@ -107,6 +112,20 @@ export const AdminView: React.FC = () => {
       isAvailable: true,
       preparationTimeMinutes: 15
     });
+  };
+
+  const handleSaveDishEdit = (dishData: {
+    name: string;
+    category: string;
+    description: string;
+    price: number;
+    dietary: 'veg' | 'non-veg' | 'vegan';
+    image: string;
+  }) => {
+    if (editingDishItem) {
+      updateMenuItem(editingDishItem.id, dishData);
+      setEditingDishItem(null);
+    }
   };
 
   const selectedYearData = yearlyRevenue.find(y => y.year === selectedYear) || yearlyRevenue[yearlyRevenue.length - 1];
@@ -411,6 +430,14 @@ export const AdminView: React.FC = () => {
                     {item.isAvailable ? 'Active' : 'Hidden'}
                   </button>
                   <button
+                    onClick={() => setEditingDishItem(item)}
+                    className="btn-icon"
+                    style={{ width: '32px', height: '32px', color: 'var(--color-primary)' }}
+                    title="Edit dish name, image, and details"
+                  >
+                    <Edit3 size={14} />
+                  </button>
+                  <button
                     onClick={() => removeMenuItem(item.id)}
                     className="btn-icon"
                     style={{ width: '32px', height: '32px', color: 'var(--color-danger)' }}
@@ -552,13 +579,23 @@ export const AdminView: React.FC = () => {
         </div>
       )}
 
-      {/* Add New Dish Modal with local image & URL options */}
+      {/* Add New Dish Modal */}
       <AddDishModal
         isOpen={isAddItemOpen}
         onClose={() => setIsAddItemOpen(false)}
         title="Admin: Add New Menu Item"
         submitLabel="Add to Restaurant Catalog"
         onSubmit={handleCreateItem}
+      />
+
+      {/* Edit Dish Modal (Change Name, Image, Price & Details) */}
+      <AddDishModal
+        isOpen={editingDishItem !== null}
+        onClose={() => setEditingDishItem(null)}
+        initialItem={editingDishItem}
+        title={editingDishItem ? `Edit Dish: ${editingDishItem.name}` : 'Edit Dish'}
+        submitLabel="Save Changes"
+        onSubmit={handleSaveDishEdit}
       />
     </div>
   );

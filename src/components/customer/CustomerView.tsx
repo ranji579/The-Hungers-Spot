@@ -19,9 +19,11 @@ import {
   X,
   CreditCard,
   CheckCircle,
-  FileText
+  FileText,
+  Edit3
 } from 'lucide-react';
 import Image from 'next/image';
+import { AddDishModal } from '@/components/common/AddDishModal';
 
 export const CustomerView: React.FC = () => {
   const {
@@ -37,7 +39,8 @@ export const CustomerView: React.FC = () => {
     cartTax,
     cartTotal,
     cartItemCount,
-    orders
+    orders,
+    updateMenuItem
   } = useRestaurant();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -47,6 +50,7 @@ export const CustomerView: React.FC = () => {
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [activeTrackingOrderId, setActiveTrackingOrderId] = useState<string | null>(null);
   const [isTableModalOpen, setIsTableModalOpen] = useState(false);
+  const [editingDishItem, setEditingDishItem] = useState<MenuItem | null>(null);
 
   // Active table details
   const currentTable = tables.find(t => t.tableNumber === activeTableNumber) || tables[0];
@@ -83,6 +87,20 @@ export const CustomerView: React.FC = () => {
     setIsPaymentOpen(false);
     setIsCartOpen(false);
     setActiveTrackingOrderId(newOrder.id);
+  };
+
+  const handleSaveDishEdit = (dishData: {
+    name: string;
+    category: string;
+    description: string;
+    price: number;
+    dietary: 'veg' | 'non-veg' | 'vegan';
+    image: string;
+  }) => {
+    if (editingDishItem) {
+      updateMenuItem(editingDishItem.id, dishData);
+      setEditingDishItem(null);
+    }
   };
 
   return (
@@ -321,6 +339,35 @@ export const CustomerView: React.FC = () => {
                       </span>
                     )}
                   </div>
+
+                  {/* Quick Edit Dish Button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingDishItem(item);
+                    }}
+                    style={{
+                      position: 'absolute',
+                      top: '10px',
+                      right: '10px',
+                      background: 'rgba(0, 0, 0, 0.7)',
+                      backdropFilter: 'blur(4px)',
+                      border: '1px solid rgba(255, 255, 255, 0.3)',
+                      color: '#fff',
+                      borderRadius: '8px',
+                      width: '32px',
+                      height: '32px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      zIndex: 2,
+                      transition: 'all 0.15s ease'
+                    }}
+                    title="Edit Dish (Name, Image & Price)"
+                  >
+                    <Edit3 size={14} />
+                  </button>
 
                   {/* Prep Time & Rating Bottom Badges */}
                   <div style={{ position: 'absolute', bottom: '8px', left: '12px', right: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -659,6 +706,16 @@ export const CustomerView: React.FC = () => {
       <OrderStatusModal
         orderId={activeTrackingOrderId}
         onClose={() => setActiveTrackingOrderId(null)}
+      />
+
+      {/* Edit Dish Modal (Change Name, Image, Price & Details) */}
+      <AddDishModal
+        isOpen={editingDishItem !== null}
+        onClose={() => setEditingDishItem(null)}
+        initialItem={editingDishItem}
+        title={editingDishItem ? `Edit Dish: ${editingDishItem.name}` : 'Edit Dish'}
+        submitLabel="Save Changes"
+        onSubmit={handleSaveDishEdit}
       />
     </div>
   );

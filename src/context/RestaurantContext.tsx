@@ -40,6 +40,7 @@ interface RestaurantContextType {
   placeOrder: (paymentMethod: PaymentMethod) => Promise<Order>;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   updateItemPrice: (itemId: string, newPrice: number) => void;
+  updateMenuItem: (itemId: string, updatedFields: Partial<Omit<MenuItem, 'id'>>) => void;
   addMenuItem: (item: Omit<MenuItem, 'id'>) => void;
   removeMenuItem: (itemId: string) => void;
   toggleItemAvailability: (itemId: string) => void;
@@ -305,6 +306,14 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     broadcastSync('UPDATE_MENU', updated);
   };
 
+  // Owner/Admin edits any menu item fields (name, image, price, description, etc.)
+  const updateMenuItem = (itemId: string, updatedFields: Partial<Omit<MenuItem, 'id'>>) => {
+    const updated = menuItems.map(m => (m.id === itemId ? { ...m, ...updatedFields } : m));
+    setMenuItems(updated);
+    localStorage.setItem(STORAGE_KEY_MENU, JSON.stringify(updated));
+    broadcastSync('UPDATE_MENU', updated);
+  };
+
   // Admin adds new item
   const addMenuItem = (itemData: Omit<MenuItem, 'id'>) => {
     const newItem: MenuItem = {
@@ -382,6 +391,7 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         placeOrder,
         updateOrderStatus,
         updateItemPrice,
+        updateMenuItem,
         addMenuItem,
         removeMenuItem,
         toggleItemAvailability,
