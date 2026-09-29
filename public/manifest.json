@@ -1,0 +1,21 @@
+{
+  "name": "The Hunger's Spot - Smart Dining",
+  "short_name": "HungersSpot",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B0D13",
+  "theme_color": "#FF5E3A",
+  "description": "Smart restaurant mobile ordering app with live table orders, QR codes, and online payments.",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
