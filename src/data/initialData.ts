@@ -874,77 +874,37 @@ export const INITIAL_TABLES: TableInfo[] = [
     tableNumber: 1,
     label: 'Table 1 (Window Dining)',
     seats: 4,
-    status: 'Occupied',
-    totalRevenue: 28450,
-    totalOrdersCount: 22,
-    activeOrderId: 'order-101'
+    status: 'Vacant',
+    totalRevenue: 0,
+    totalOrdersCount: 0
   },
   {
     tableNumber: 2,
     label: 'Table 2 (Central Booth)',
     seats: 4,
-    status: 'Billing',
-    totalRevenue: 19800,
-    totalOrdersCount: 16,
-    activeOrderId: 'order-102'
+    status: 'Vacant',
+    totalRevenue: 0,
+    totalOrdersCount: 0
   },
   {
     tableNumber: 3,
     label: 'Table 3 (Patio Garden)',
     seats: 6,
     status: 'Vacant',
-    totalRevenue: 15200,
-    totalOrdersCount: 12
+    totalRevenue: 0,
+    totalOrdersCount: 0
   },
   {
     tableNumber: 4,
     label: 'Table 4 (VIP Lounge)',
     seats: 4,
     status: 'Vacant',
-    totalRevenue: 22600,
-    totalOrdersCount: 18
+    totalRevenue: 0,
+    totalOrdersCount: 0
   }
 ];
 
-export const INITIAL_RECENT_ORDERS: Order[] = [
-  {
-    id: 'order-101',
-    orderNumber: '#THS-101',
-    tableNumber: 1,
-    items: [
-      { id: 'm-chef-1', name: 'Special Basmati Ambur Chicken Biryani', price: 320, quantity: 2, notes: 'Medium spice with extra raita' },
-      { id: 'm-chk-1', name: 'Chicken 65', price: 240, quantity: 1, notes: 'Extra crispy curry leaves' }
-    ],
-    subtotal: 880,
-    tax: 44,
-    total: 924,
-    status: 'Preparing',
-    paymentMethod: 'UPI (Google Pay / PhonePe / Paytm)',
-    paymentStatus: 'Paid',
-    transactionId: 'TXN-UPI-99214',
-    createdAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 5 * 60 * 1000).toISOString()
-  },
-  {
-    id: 'order-102',
-    orderNumber: '#THS-102',
-    tableNumber: 2,
-    items: [
-      { id: 'm-grv-c7', name: 'Butter Chicken Masala', price: 310, quantity: 1, notes: 'Silky smooth gravy' },
-      { id: 'm-brd-2', name: 'Butter Naan', price: 55, quantity: 2 },
-      { id: 'm-brd-3', name: 'Garlic Naan', price: 65, quantity: 1 }
-    ],
-    subtotal: 485,
-    tax: 24,
-    total: 509,
-    status: 'Received',
-    paymentMethod: 'UPI (Google Pay / PhonePe / Paytm)',
-    paymentStatus: 'Paid',
-    transactionId: 'TXN-UPI-88312',
-    createdAt: new Date(Date.now() - 4 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 4 * 60 * 1000).toISOString()
-  }
-];
+export const INITIAL_RECENT_ORDERS: Order[] = [];
 
 export const INITIAL_YEARLY_REVENUE: YearlyRevenueData[] = [
   {

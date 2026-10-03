@@ -22,7 +22,8 @@ import {
   Eye,
   Calendar,
   Layers,
-  Sparkles
+  Sparkles,
+  RotateCcw
 } from 'lucide-react';
 import { AddDishModal } from '@/components/common/AddDishModal';
 
@@ -39,7 +40,9 @@ export const OwnerView: React.FC = () => {
     toggleItemAvailability,
     yearlyRevenue,
     getTableRevenue,
-    getTableOrders
+    getTableOrders,
+    resetAllTablesRevenue,
+    resetTableRevenue
   } = useRestaurant();
 
   const [activeTab, setActiveTab] = useState<'orders' | 'tables' | 'menu' | 'yearly'>('orders');
@@ -437,9 +440,21 @@ export const OwnerView: React.FC = () => {
                 Granular revenue performance breakdown for Tables 1 to 4
               </p>
             </div>
+            <button
+              onClick={() => {
+                if (confirm('Reset all tables revenue to ₹0?')) {
+                  resetAllTablesRevenue();
+                }
+              }}
+              className="btn-secondary"
+              style={{ fontSize: '12px', padding: '6px 12px', color: 'var(--color-danger)', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+            >
+              <RotateCcw size={13} />
+              <span>Reset All Tables to ₹0</span>
+            </button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '24px' }}>
             {tables.map(tbl => {
               const tableOrdersList = getTableOrders(tbl.tableNumber);
               const totalRev = getTableRevenue(tbl.tableNumber);
@@ -491,14 +506,40 @@ export const OwnerView: React.FC = () => {
                     <div>Avg: <strong style={{ color: '#fff' }}>₹{avgSpend.toFixed(2)}</strong></div>
                   </div>
 
-                  <button
-                    onClick={() => setSelectedTableForDetails(tbl.tableNumber)}
-                    className="btn-secondary"
-                    style={{ width: '100%', fontSize: '12px', padding: '8px' }}
-                  >
-                    <Eye size={13} />
-                    <span>View Table Orders History</span>
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={() => setSelectedTableForDetails(tbl.tableNumber)}
+                      className="btn-secondary"
+                      style={{ flex: 1, fontSize: '12px', padding: '8px', justifyContent: 'center' }}
+                    >
+                      <Eye size={13} />
+                      <span>History</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (confirm(`Reset Table ${tbl.tableNumber} revenue to ₹0?`)) {
+                          resetTableRevenue(tbl.tableNumber);
+                        }
+                      }}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: 'var(--radius-md)',
+                        background: 'rgba(239, 68, 68, 0.1)',
+                        border: '1px solid rgba(239, 68, 68, 0.25)',
+                        color: 'var(--color-danger)',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                      title="Reset this table to ₹0"
+                    >
+                      <RotateCcw size={12} />
+                      <span>Reset ₹0</span>
+                    </button>
+                  </div>
                 </div>
               );
             })}

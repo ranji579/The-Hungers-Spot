@@ -18,9 +18,25 @@ import {
 } from '@/data/initialData';
 import { sounds } from '@/utils/audio';
 
-const STORAGE_KEY_MENU = 'ths_menu_items_inr_v4';
-const STORAGE_KEY_TABLES = 'ths_tables_inr_v4';
-const STORAGE_KEY_ORDERS = 'ths_orders_inr_v4';
+const STORAGE_KEY_MENU = 'ths_menu_items_inr_v5';
+const STORAGE_KEY_TABLES = 'ths_tables_inr_v5';
+const STORAGE_KEY_ORDERS = 'ths_orders_inr_v5';
+
+// Helper to compute table stats strictly from orders so table revenue adds up accurately
+export const computeTablesFromOrders = (baseTables: TableInfo[], orderList: Order[]): TableInfo[] => {
+  return baseTables.map(t => {
+    const tableOrders = orderList.filter(o => o.tableNumber === t.tableNumber);
+    const rev = Number(tableOrders.reduce((sum, o) => sum + (o.total || 0), 0).toFixed(2));
+    const activeOrder = tableOrders.find(o => o.status === 'Received' || o.status === 'Preparing' || o.status === 'Served');
+    return {
+      ...t,
+      totalRevenue: rev,
+      totalOrdersCount: tableOrders.length,
+      status: activeOrder ? 'Occupied' : 'Vacant',
+      activeOrderId: activeOrder ? activeOrder.id : undefined
+    };
+  });
+};
 
 interface RestaurantContextType {
   menuItems: MenuItem[];
@@ -47,6 +63,8 @@ interface RestaurantContextType {
   yearlyRevenue: YearlyRevenueData[];
   getTableRevenue: (tableNumber: number) => number;
   getTableOrders: (tableNumber: number) => Order[];
+  resetAllTablesRevenue: () => void;
+  resetTableRevenue: (tableNumber: number) => void;
   activeView: 'customer' | 'owner' | 'admin';
   setActiveView: (view: 'customer' | 'owner' | 'admin') => void;
   isMobileFrame: boolean;
@@ -78,11 +96,16 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       const savedMenu = localStorage.getItem(STORAGE_KEY_MENU);
       if (savedMenu) setMenuItems(JSON.parse(savedMenu));
 
-      const savedTables = localStorage.getItem(STORAGE_KEY_TABLES);
-      if (savedTables) setTables(JSON.parse(savedTables));
-
       const savedOrders = localStorage.getItem(STORAGE_KEY_ORDERS);
-      if (savedOrders) setOrders(JSON.parse(savedOrders));
+      const loadedOrders: Order[] = savedOrders ? JSON.parse(savedOrders) : INITIAL_RECENT_ORDERS;
+      setOrders(loadedOrders);
+
+      const savedTables = localStorage.getItem(STORAGE_KEY_TABLES);
+      const baseTables: TableInfo[] = savedTables ? JSON.parse(savedTables) : INITIAL_TABLES;
+      // Recompute table revenue strictly from orders so table revenue starts at 0 and adds up accurately
+      const accurateTables = computeTablesFromOrders(baseTables, loadedOrders);
+      setTables(accurateTables);
+      localStorage.setItem(STORAGE_KEY_TABLES, JSON.stringify(accurateTables));
     } catch (e) {
       console.error('Failed to load local storage state', e);
     }
@@ -123,26 +146,40 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       const { type, payload } = event.data;
       if (type === 'NEW_ORDER') {
         const order = payload as Order;
-        setOrders(prev => [order, ...prev.filter(o => o.id !== order.id)]);
-        setTables(prev => prev.map(t => {
-          if (t.tableNumber === order.tableNumber) {
-            return {
-              ...t,
-              status: 'Occupied',
-              totalRevenue: Number((t.totalRevenue + order.total).toFixed(2)),
-              totalOrdersCount: t.totalOrdersCount + 1,
-              activeOrderId: order.id
-            };
-          }
-          return t;
-        }));
+        setOrders(prev => {
+          const updated = [order, ...prev.filter(o => o.id !== order.id)];
+          localStorage.setItem(STORAGE_KEY_ORDERS, JSON.stringify(updated));
+          setTables(tPrev => {
+            const upTables = computeTablesFromOrders(tPrev, updated);
+            localStorage.setItem(STORAGE_KEY_TABLES, JSON.stringify(upTables));
+            return upTables;
+          });
+          return updated;
+        });
         setUnreadOrderNotification(`New Order ${order.orderNumber} placed for Table ${order.tableNumber}!`);
         if (soundEnabled) {
           sounds.playNewOrderChime();
         }
       } else if (type === 'UPDATE_STATUS') {
         const { orderId, status } = payload;
-        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status, updatedAt: new Date().toISOString() } : o));
+        setOrders(prev => {
+          const updated = prev.map(o => o.id === orderId ? { ...o, status, updatedAt: new Date().toISOString() } : o);
+          localStorage.setItem(STORAGE_KEY_ORDERS, JSON.stringify(updated));
+          setTables(tPrev => {
+            const upTables = computeTablesFromOrders(tPrev, updated);
+            localStorage.setItem(STORAGE_KEY_TABLES, JSON.stringify(upTables));
+            return upTables;
+          });
+          return updated;
+        });
+      } else if (type === 'RESET_ALL_REVENUE') {
+        setOrders([]);
+        localStorage.setItem(STORAGE_KEY_ORDERS, JSON.stringify([]));
+        setTables(tPrev => {
+          const upTables = computeTablesFromOrders(tPrev, []);
+          localStorage.setItem(STORAGE_KEY_TABLES, JSON.stringify(upTables));
+          return upTables;
+        });
       } else if (type === 'UPDATE_MENU') {
         setMenuItems(payload as MenuItem[]);
       } else if (type === 'UPDATE_TABLES') {
@@ -157,7 +194,6 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const setActiveTableNumber = (tableNum: number) => {
     setActiveTableNumberState(tableNum);
-    // Keep cart separated or persist per table if needed
   };
 
   const clearNotification = () => {
@@ -245,19 +281,8 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setOrders(updatedOrders);
     localStorage.setItem(STORAGE_KEY_ORDERS, JSON.stringify(updatedOrders));
 
-    // Update table info
-    const updatedTables = tables.map(t => {
-      if (t.tableNumber === activeTableNumber) {
-        return {
-          ...t,
-          status: 'Occupied' as const,
-          totalRevenue: Number((t.totalRevenue + newOrder.total).toFixed(2)),
-          totalOrdersCount: t.totalOrdersCount + 1,
-          activeOrderId: newOrder.id
-        };
-      }
-      return t;
-    });
+    // Update table info strictly from updated orders
+    const updatedTables = computeTablesFromOrders(tables, updatedOrders);
     setTables(updatedTables);
     localStorage.setItem(STORAGE_KEY_TABLES, JSON.stringify(updatedTables));
 
@@ -279,22 +304,11 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setOrders(updated);
     localStorage.setItem(STORAGE_KEY_ORDERS, JSON.stringify(updated));
 
-    // If completed, update table status if this was active order
-    if (status === 'Completed') {
-      const order = orders.find(o => o.id === orderId);
-      if (order) {
-        const updatedTables = tables.map(t => {
-          if (t.tableNumber === order.tableNumber && t.activeOrderId === orderId) {
-            return { ...t, status: 'Vacant' as const, activeOrderId: undefined };
-          }
-          return t;
-        });
-        setTables(updatedTables);
-        localStorage.setItem(STORAGE_KEY_TABLES, JSON.stringify(updatedTables));
-        broadcastSync('UPDATE_TABLES', updatedTables);
-      }
-    }
+    const updatedTables = computeTablesFromOrders(tables, updated);
+    setTables(updatedTables);
+    localStorage.setItem(STORAGE_KEY_TABLES, JSON.stringify(updatedTables));
 
+    broadcastSync('UPDATE_TABLES', updatedTables);
     broadcastSync('UPDATE_STATUS', { orderId, status });
   };
 
@@ -342,19 +356,43 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     broadcastSync('UPDATE_MENU', updated);
   };
 
-  // Table specific revenue & orders
+  // Table specific revenue & orders — always computes real live sum of table orders
   const getTableRevenue = useCallback((tableNum: number) => {
-    const table = tables.find(t => t.tableNumber === tableNum);
-    return table ? table.totalRevenue : 0;
-  }, [tables]);
+    const tableOrders = orders.filter(o => o.tableNumber === tableNum);
+    return Number(tableOrders.reduce((sum, o) => sum + (o.total || 0), 0).toFixed(2));
+  }, [orders]);
 
   const getTableOrders = useCallback((tableNum: number) => {
     return orders.filter(o => o.tableNumber === tableNum);
   }, [orders]);
 
+  // Reset all table revenues and orders to 0
+  const resetAllTablesRevenue = useCallback(() => {
+    setOrders([]);
+    localStorage.setItem(STORAGE_KEY_ORDERS, JSON.stringify([]));
+    const zeroTables = computeTablesFromOrders(INITIAL_TABLES, []);
+    setTables(zeroTables);
+    localStorage.setItem(STORAGE_KEY_TABLES, JSON.stringify(zeroTables));
+    broadcastSync('RESET_ALL_REVENUE', {});
+  }, [broadcastSync]);
+
+  // Reset a specific table's revenue to 0
+  const resetTableRevenue = useCallback((tableNum: number) => {
+    setOrders(prev => {
+      const remaining = prev.filter(o => o.tableNumber !== tableNum);
+      localStorage.setItem(STORAGE_KEY_ORDERS, JSON.stringify(remaining));
+      setTables(tPrev => {
+        const upTables = computeTablesFromOrders(tPrev, remaining);
+        localStorage.setItem(STORAGE_KEY_TABLES, JSON.stringify(upTables));
+        broadcastSync('UPDATE_TABLES', upTables);
+        return upTables;
+      });
+      return remaining;
+    });
+  }, [broadcastSync]);
+
   // Aggregate yearly revenue including live placed orders
   const yearlyRevenue = useMemo(() => {
-    // Current year orders total
     const currentYear = new Date().getFullYear();
     const liveOrdersTotal = orders.reduce((sum, o) => sum + o.total, 0);
 
@@ -364,7 +402,9 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           ...yr,
           totalRevenue: Number((yr.totalRevenue + liveOrdersTotal).toFixed(2)),
           totalOrders: yr.totalOrders + orders.length,
-          averageOrderValue: Number(((yr.totalRevenue + liveOrdersTotal) / (yr.totalOrders + orders.length)).toFixed(2))
+          averageOrderValue: (yr.totalOrders + orders.length) > 0
+            ? Number(((yr.totalRevenue + liveOrdersTotal) / (yr.totalOrders + orders.length)).toFixed(2))
+            : 0
         };
       }
       return yr;
@@ -398,6 +438,8 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         yearlyRevenue,
         getTableRevenue,
         getTableOrders,
+        resetAllTablesRevenue,
+        resetTableRevenue,
         activeView,
         setActiveView,
         isMobileFrame,

@@ -19,7 +19,11 @@ import {
   DollarSign,
   Layers,
   Sparkles,
-  X
+  X,
+  Eye,
+  RotateCcw,
+  Receipt,
+  Users
 } from 'lucide-react';
 import { AddDishModal } from '@/components/common/AddDishModal';
 
@@ -34,12 +38,17 @@ export const AdminView: React.FC = () => {
     removeMenuItem,
     toggleItemAvailability,
     yearlyRevenue,
+    getTableRevenue,
+    getTableOrders,
+    resetAllTablesRevenue,
+    resetTableRevenue,
     setActiveTableNumber,
     setActiveView
   } = useRestaurant();
 
-  const [activeTab, setActiveTab] = useState<'qr' | 'menu' | 'revenue'>('qr');
+  const [activeTab, setActiveTab] = useState<'tables' | 'qr' | 'menu' | 'revenue'>('tables');
   const [selectedPrintTable, setSelectedPrintTable] = useState<number | null>(null);
+  const [selectedTableForDetails, setSelectedTableForDetails] = useState<number | null>(null);
 
   // QR Code canvas elements
   const qrCanvasRefs = useRef<{ [key: number]: HTMLCanvasElement | null }>({});
@@ -172,7 +181,26 @@ export const AdminView: React.FC = () => {
         </div>
 
         {/* Quick Tabs */}
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setActiveTab('tables')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: 'var(--radius-md)',
+              fontSize: '13px',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: activeTab === 'tables' ? 'var(--color-primary)' : 'var(--bg-card)',
+              color: activeTab === 'tables' ? '#fff' : 'var(--text-secondary)',
+              border: activeTab === 'tables' ? '1px solid var(--color-primary)' : '1px solid var(--glass-border)'
+            }}
+          >
+            <DollarSign size={15} />
+            <span>Particular Table Revenue</span>
+          </button>
+
           <button
             onClick={() => setActiveTab('qr')}
             style={{
@@ -232,6 +260,141 @@ export const AdminView: React.FC = () => {
         </div>
       </div>
 
+      {/* TAB: PARTICULAR TABLE REVENUE */}
+      {activeTab === 'tables' && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <h2 style={{ fontSize: '18px', fontWeight: 800 }}>Particular Table Revenue (Tables 1 - 4)</h2>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                Live revenue breakdown for each dining table. Every table starts at ₹0 and adds up automatically as orders are placed.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => {
+                  if (confirm('Are you sure you want to reset all tables revenue and orders to ₹0?')) {
+                    resetAllTablesRevenue();
+                  }
+                }}
+                className="btn-secondary"
+                style={{ fontSize: '12px', padding: '8px 14px', color: 'var(--color-danger)', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+                title="Reset all tables revenue to 0"
+              >
+                <RotateCcw size={14} />
+                <span>Reset All Tables to ₹0</span>
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '28px' }}>
+            {tables.map(tbl => {
+              const tableOrdersList = getTableOrders(tbl.tableNumber);
+              const totalRev = getTableRevenue(tbl.tableNumber);
+              const avgSpend = tableOrdersList.length > 0 ? totalRev / tableOrdersList.length : 0;
+
+              return (
+                <div
+                  key={tbl.tableNumber}
+                  className="glass-panel"
+                  style={{
+                    padding: '22px',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    borderTop: `4px solid ${
+                      tbl.status === 'Occupied' ? 'var(--color-primary)' : 'var(--color-accent)'
+                    }`,
+                    background: 'var(--bg-card)'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
+                    <div>
+                      <h3 style={{ fontSize: '19px', fontWeight: 800 }}>Table #{tbl.tableNumber}</h3>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{tbl.label} ({tbl.seats} Seats)</div>
+                    </div>
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        padding: '3px 9px',
+                        borderRadius: 'var(--radius-full)',
+                        fontWeight: 700,
+                        background: tbl.status === 'Occupied' ? 'rgba(255, 94, 58, 0.2)' : 'rgba(16, 185, 129, 0.2)',
+                        color: tbl.status === 'Occupied' ? 'var(--color-primary)' : 'var(--color-accent)'
+                      }}
+                    >
+                      {tbl.status}
+                    </span>
+                  </div>
+
+                  <div style={{ marginBottom: '16px', background: 'rgba(255, 255, 255, 0.03)', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Table Total Revenue
+                    </div>
+                    <div style={{ fontSize: '26px', fontWeight: 900, color: 'var(--color-accent)', marginTop: '4px' }}>
+                      ₹{totalRev.toFixed(2)}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+                    <div>Orders Placed: <strong style={{ color: '#fff' }}>{tableOrdersList.length}</strong></div>
+                    <div>Avg Ticket: <strong style={{ color: '#fff' }}>₹{avgSpend.toFixed(2)}</strong></div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <button
+                      onClick={() => setSelectedTableForDetails(tbl.tableNumber)}
+                      className="btn-secondary"
+                      style={{ width: '100%', fontSize: '12px', padding: '9px', justifyContent: 'center' }}
+                    >
+                      <Eye size={14} />
+                      <span>View Orders Breakdown ({tableOrdersList.length})</span>
+                    </button>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                      <button
+                        onClick={() => handleTestTable(tbl.tableNumber)}
+                        className="btn-primary"
+                        style={{ fontSize: '11px', padding: '8px 10px', justifyContent: 'center' }}
+                        title="Order food from this table to test revenue addition"
+                      >
+                        <ExternalLink size={13} />
+                        <span>Order Test</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm(`Reset Table ${tbl.tableNumber} revenue to ₹0?`)) {
+                            resetTableRevenue(tbl.tableNumber);
+                          }
+                        }}
+                        style={{
+                          fontSize: '11px',
+                          padding: '8px 10px',
+                          borderRadius: 'var(--radius-md)',
+                          background: 'rgba(239, 68, 68, 0.1)',
+                          border: '1px solid rgba(239, 68, 68, 0.25)',
+                          color: 'var(--color-danger)',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px'
+                        }}
+                        title="Reset this table's revenue to ₹0"
+                      >
+                        <RotateCcw size={12} />
+                        <span>Reset ₹0</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* TAB 1: 4 TABLES QR CODE STUDIO */}
       {activeTab === 'qr' && (
         <div>
@@ -279,6 +442,28 @@ export const AdminView: React.FC = () => {
                   <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                     {table.label} ({table.seats} Seats)
                   </div>
+                </div>
+
+                {/* Table Live Revenue Badge */}
+                <div
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.04)',
+                    border: '1px solid var(--glass-border)',
+                    borderRadius: '10px',
+                    padding: '6px 12px',
+                    marginBottom: '14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '12px'
+                  }}
+                >
+                  <span style={{ color: 'var(--text-muted)' }}>Revenue:</span>
+                  <strong style={{ color: 'var(--color-accent)', fontSize: '14px' }}>
+                    ₹{getTableRevenue(table.tableNumber).toFixed(2)}
+                  </strong>
+                  <span style={{ color: 'var(--text-muted)' }}>•</span>
+                  <span style={{ color: 'var(--text-muted)' }}>{getTableOrders(table.tableNumber).length} orders</span>
                 </div>
 
                 {/* QR Code Canvas */}
@@ -597,6 +782,120 @@ export const AdminView: React.FC = () => {
         submitLabel="Save Changes"
         onSubmit={handleSaveDishEdit}
       />
+
+      {/* Table Orders History Modal */}
+      {selectedTableForDetails !== null && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(0,0,0,0.75)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            padding: '20px'
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setSelectedTableForDetails(null); }}
+        >
+          <div
+            className="glass-panel"
+            style={{
+              maxWidth: '560px',
+              width: '100%',
+              maxHeight: '85vh',
+              overflowY: 'auto',
+              padding: '24px',
+              background: 'var(--bg-card)',
+              border: '1px solid var(--glass-border)',
+              borderRadius: '20px',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.6)'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--glass-border)', paddingBottom: '12px' }}>
+              <div>
+                <h3 style={{ fontSize: '19px', fontWeight: 800 }}>
+                  Table #{selectedTableForDetails} Revenue &amp; Orders Breakdown
+                </h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                  Total Collected: <strong style={{ color: 'var(--color-accent)', fontSize: '15px' }}>₹{getTableRevenue(selectedTableForDetails).toFixed(2)}</strong>
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedTableForDetails(null)}
+                className="btn-icon"
+                style={{ width: '32px', height: '32px' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {getTableOrders(selectedTableForDetails).length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
+                <Receipt size={36} style={{ margin: '0 auto 10px auto', opacity: 0.5 }} />
+                <p style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: 600 }}>No orders placed for this table yet</p>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  Table revenue is currently ₹0.00. Place an order from Table #{selectedTableForDetails} to see revenue add up live!
+                </p>
+                <button
+                  onClick={() => {
+                    handleTestTable(selectedTableForDetails);
+                    setSelectedTableForDetails(null);
+                  }}
+                  className="btn-primary"
+                  style={{ marginTop: '16px', fontSize: '13px', padding: '8px 16px' }}
+                >
+                  <ExternalLink size={14} />
+                  <span>Place Test Order for Table #{selectedTableForDetails}</span>
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {getTableOrders(selectedTableForDetails).map(ord => (
+                  <div
+                    key={ord.id}
+                    style={{
+                      background: 'var(--bg-surface)',
+                      padding: '14px',
+                      borderRadius: '12px',
+                      border: '1px solid var(--glass-border)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <div>
+                        <span style={{ fontWeight: 800, fontSize: '14px', color: 'var(--color-primary)' }}>
+                          {ord.orderNumber}
+                        </span>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '8px' }}>
+                          {new Date(ord.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--color-accent)' }}>
+                        ₹{ord.total.toFixed(2)}
+                      </span>
+                    </div>
+
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                      {ord.items.map((it, idx) => (
+                        <span key={idx}>
+                          {it.quantity}x {it.name} (₹{it.price}){idx < ord.items.length - 1 ? ', ' : ''}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)' }}>
+                      <span>Status: <strong style={{ color: '#fff' }}>{ord.status}</strong></span>
+                      <span>Payment: <strong style={{ color: '#fff' }}>{ord.paymentMethod}</strong></span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

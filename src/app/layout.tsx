@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { RestaurantProvider } from '@/context/RestaurantContext';
+import { AuthProvider } from '@/context/AuthContext';
 import { Navbar } from '@/components/Navbar';
 
 export const metadata: Metadata = {
@@ -32,14 +33,16 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body>
-        <RestaurantProvider>
-          <div className="app-container">
-            <Navbar />
-            <main style={{ flex: 1 }}>
-              {children}
-            </main>
-          </div>
-        </RestaurantProvider>
+        <AuthProvider>
+          <RestaurantProvider>
+            <div className="app-container">
+              <Navbar />
+              <main style={{ flex: 1 }}>
+                {children}
+              </main>
+            </div>
+          </RestaurantProvider>
+        </AuthProvider>
       </body>
     </html>
   );
