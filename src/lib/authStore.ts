@@ -12,8 +12,11 @@ export interface StoredUser {
   createdAt: string;
 }
 
-const DATA_DIR = path.join(process.cwd(), 'src', 'data');
-const USERS_FILE = path.join(DATA_DIR, 'localUsers.json');
+const BUNDLED_FILE = path.join(process.cwd(), 'src', 'data', 'localUsers.json');
+const RUNTIME_FILE = process.env.VERCEL ? path.join('/tmp', 'localUsers.json') : BUNDLED_FILE;
+
+// In-memory cache fallback if file system is inaccessible
+let memoryUsers: StoredUser[] | null = null;
 
 // Default initial accounts with bcrypt hashes for 'admin123' and 'owner123'
 const DEFAULT_USERS: StoredUser[] = [
@@ -38,18 +41,31 @@ const DEFAULT_USERS: StoredUser[] = [
 ];
 
 function ensureFileExists(): StoredUser[] {
+  if (memoryUsers && memoryUsers.length > 0) {
+    return memoryUsers;
+  }
   try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
+    if (fs.existsSync(RUNTIME_FILE)) {
+      const content = fs.readFileSync(RUNTIME_FILE, 'utf-8');
+      memoryUsers = JSON.parse(content) as StoredUser[];
+      return memoryUsers;
     }
-    if (!fs.existsSync(USERS_FILE)) {
-      fs.writeFileSync(USERS_FILE, JSON.stringify(DEFAULT_USERS, null, 2), 'utf-8');
-      return DEFAULT_USERS;
+    if (fs.existsSync(BUNDLED_FILE)) {
+      const content = fs.readFileSync(BUNDLED_FILE, 'utf-8');
+      const loaded = JSON.parse(content) as StoredUser[];
+      memoryUsers = loaded;
+      if (process.env.VERCEL) {
+        try {
+          fs.writeFileSync(RUNTIME_FILE, JSON.stringify(loaded, null, 2), 'utf-8');
+        } catch {}
+      }
+      return loaded;
     }
-    const content = fs.readFileSync(USERS_FILE, 'utf-8');
-    return JSON.parse(content) as StoredUser[];
+    memoryUsers = DEFAULT_USERS;
+    return DEFAULT_USERS;
   } catch (err) {
-    console.warn('[AUTH_STORE] Error reading localUsers.json, using fallback:', err);
+    console.warn('[AUTH_STORE] Error reading local users, using fallback:', err);
+    memoryUsers = DEFAULT_USERS;
     return DEFAULT_USERS;
   }
 }
@@ -66,15 +82,16 @@ export function findLocalUser(identifier: string): StoredUser | null {
 
 export function saveLocalUser(user: StoredUser): void {
   try {
-    const users = ensureFileExists();
+    const users = [...ensureFileExists()];
     const existingIndex = users.findIndex(u => u.email.toLowerCase() === user.email.toLowerCase());
     if (existingIndex >= 0) {
       users[existingIndex] = user;
     } else {
       users.push(user);
     }
-    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), 'utf-8');
+    memoryUsers = users;
+    fs.writeFileSync(RUNTIME_FILE, JSON.stringify(users, null, 2), 'utf-8');
   } catch (err) {
-    console.warn('[AUTH_STORE] Error writing to localUsers.json:', err);
+    console.warn('[AUTH_STORE] Error writing users file:', err);
   }
 }

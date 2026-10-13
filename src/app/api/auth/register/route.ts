@@ -85,19 +85,21 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Try Prisma database create (best effort)
-    try {
-      await prisma.user.create({
-        data: {
-          id: supabaseUserId,
-          username: finalUsername,
-          email,
-          passwordHash,
-          role,
-          displayName: finalDisplayName,
-        },
-      });
-    } catch (prismaErr) {
-      console.warn('[PRISMA SAVE FALLBACK]', prismaErr);
+    if (prisma) {
+      try {
+        await prisma.user.create({
+          data: {
+            id: supabaseUserId,
+            username: finalUsername,
+            email,
+            passwordHash,
+            role,
+            displayName: finalDisplayName,
+          },
+        });
+      } catch (prismaErr) {
+        console.warn('[PRISMA SAVE FALLBACK]', prismaErr);
+      }
     }
 
     // 5. Save locally for persistent and offline-resilient access

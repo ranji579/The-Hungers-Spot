@@ -4,12 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
+    "postinstall": "prisma generate",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "^7.10.0",
     "@supabase/supabase-js": "^2.117.2",
     "@types/pg": "^8.23.1",
     "bcryptjs": "^3.0.3",
@@ -22,7 +24,6 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@prisma/client": "^7.10.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20.17.0",

@@ -71,43 +71,45 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Try Prisma database table (public.users)
-    try {
-      const user = await prisma.user.findFirst({
-        where: {
-          OR: [
-            { email: identifier },
-            { username: identifier }
-          ]
-        },
-      });
+    if (prisma) {
+      try {
+        const user = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { email: identifier },
+              { username: identifier }
+            ]
+          },
+        });
 
-      if (user) {
-        // Check role if requiredRole is specified
-        if (requiredRole && user.role !== requiredRole) {
-          return NextResponse.json(
-            { success: false, message: `Access denied. This account does not have ${requiredRole.toLowerCase()} privileges.` },
-            { status: 403 }
-          );
+        if (user) {
+          // Check role if requiredRole is specified
+          if (requiredRole && user.role !== requiredRole) {
+            return NextResponse.json(
+              { success: false, message: `Access denied. This account does not have ${requiredRole.toLowerCase()} privileges.` },
+              { status: 403 }
+            );
+          }
+
+          // Verify password hash
+          const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+
+          if (isPasswordValid) {
+            return NextResponse.json({
+              success: true,
+              user: {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                role: user.role,
+                displayName: user.displayName,
+              },
+            });
+          }
         }
-
-        // Verify password hash
-        const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
-
-        if (isPasswordValid) {
-          return NextResponse.json({
-            success: true,
-            user: {
-              id: user.id,
-              username: user.username,
-              email: user.email,
-              role: user.role,
-              displayName: user.displayName,
-            },
-          });
-        }
+      } catch (prismaErr) {
+        console.warn('[PRISMA LOGIN FALLBACK]', prismaErr);
       }
-    } catch (prismaErr) {
-      console.warn('[PRISMA LOGIN FALLBACK]', prismaErr);
     }
 
     // 3. Fallback to local persistent store (authStore)
