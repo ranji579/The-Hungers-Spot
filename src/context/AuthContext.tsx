@@ -12,10 +12,18 @@ export interface AuthUser {
   displayName: string;
 }
 
+export interface RegisterParams {
+  email: string;
+  password: string;
+  displayName?: string;
+  role?: UserRole;
+}
+
 interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
   login: (emailOrUsername: string, password: string, requiredRole?: UserRole) => Promise<{ success: boolean; message?: string }>;
+  register: (params: RegisterParams) => Promise<{ success: boolean; message?: string; alreadyExists?: boolean }>;
   logout: () => void;
   isAuthenticated: boolean;
   requiredRole: UserRole | null;
@@ -72,6 +80,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  const register = useCallback(async ({ email, password, displayName, role = 'OWNER' }: RegisterParams) => {
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          password,
+          displayName,
+          role,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success && data.user) {
+        const authUser = data.user as AuthUser;
+        setUser(authUser);
+        sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authUser));
+        return { success: true };
+      }
+
+      return {
+        success: false,
+        message: data.message || 'Registration failed',
+        alreadyExists: !!data.alreadyExists,
+      };
+    } catch {
+      return { success: false, message: 'Network error. Please try again.' };
+    }
+  }, []);
+
   const logout = useCallback(() => {
     setUser(null);
     sessionStorage.removeItem(AUTH_STORAGE_KEY);
@@ -84,6 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         isLoading,
         login,
+        register,
         logout,
         isAuthenticated: !!user,
         requiredRole,

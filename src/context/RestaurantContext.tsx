@@ -22,16 +22,17 @@ const STORAGE_KEY_MENU = 'ths_menu_items_inr_v5';
 const STORAGE_KEY_TABLES = 'ths_tables_inr_v5';
 const STORAGE_KEY_ORDERS = 'ths_orders_inr_v5';
 
-// Helper to compute table stats strictly from orders so table revenue adds up accurately
+// Helper to compute table stats strictly from orders (calculating selected items only, no amounts)
 export const computeTablesFromOrders = (baseTables: TableInfo[], orderList: Order[]): TableInfo[] => {
   return baseTables.map(t => {
     const tableOrders = orderList.filter(o => o.tableNumber === t.tableNumber);
-    const rev = Number(tableOrders.reduce((sum, o) => sum + (o.total || 0), 0).toFixed(2));
+    const itemsCount = tableOrders.reduce((sum, o) => sum + o.items.reduce((iSum, it) => iSum + (it.quantity || 0), 0), 0);
     const activeOrder = tableOrders.find(o => o.status === 'Received' || o.status === 'Preparing' || o.status === 'Served');
     return {
       ...t,
-      totalRevenue: rev,
+      totalRevenue: 0,
       totalOrdersCount: tableOrders.length,
+      totalItemsCount: itemsCount,
       status: activeOrder ? 'Occupied' : 'Vacant',
       activeOrderId: activeOrder ? activeOrder.id : undefined
     };
@@ -53,7 +54,8 @@ interface RestaurantContextType {
   cartTax: number;
   cartTotal: number;
   cartItemCount: number;
-  placeOrder: (paymentMethod: PaymentMethod) => Promise<Order>;
+  placeOrder: (method?: string) => Promise<Order>;
+  createDirectOrder: (tableNumber: number, itemsList?: { id: string; name: string; quantity: number }[]) => Order;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   updateItemPrice: (itemId: string, newPrice: number) => void;
   updateMenuItem: (itemId: string, updatedFields: Partial<Omit<MenuItem, 'id'>>) => void;
@@ -62,6 +64,7 @@ interface RestaurantContextType {
   toggleItemAvailability: (itemId: string) => void;
   yearlyRevenue: YearlyRevenueData[];
   getTableRevenue: (tableNumber: number) => number;
+  getTableTotalItems: (tableNumber: number) => number;
   getTableOrders: (tableNumber: number) => Order[];
   resetAllTablesRevenue: () => void;
   resetTableRevenue: (tableNumber: number) => void;
@@ -235,25 +238,18 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const clearCart = () => setCart([]);
 
-  const cartSubtotal = useMemo(() => {
-    return Number(cart.reduce((sum, item) => sum + item.item.price * item.quantity, 0).toFixed(2));
-  }, [cart]);
-
-  const cartTax = useMemo(() => {
-    // 5% GST (2.5% CGST + 2.5% SGST)
-    return Number((cartSubtotal * 0.05).toFixed(2));
-  }, [cartSubtotal]);
-
-  const cartTotal = useMemo(() => {
-    return Number((cartSubtotal + cartTax).toFixed(2));
-  }, [cartSubtotal, cartTax]);
+  // Amounts are removed - calculating selected items only
+  const cartSubtotal = 0;
+  const cartTax = 0;
+  const cartTotal = 0;
 
   const cartItemCount = useMemo(() => {
     return cart.reduce((sum, item) => sum + item.quantity, 0);
   }, [cart]);
 
-  // Place order
-  const placeOrder = async (paymentMethod: PaymentMethod): Promise<Order> => {
+  // Place order (selected items only, no amounts)
+  const placeOrder = async (paymentMethod?: string): Promise<Order> => {
+    const method = paymentMethod || 'Direct Order';
     const orderNum = `#THS-${Math.floor(100 + Math.random() * 900)}`;
     const newOrder: Order = {
       id: `ord-${Date.now()}`,
@@ -262,17 +258,17 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       items: cart.map(c => ({
         id: c.item.id,
         name: c.item.name,
-        price: c.item.price,
+        price: 0,
         quantity: c.quantity,
         notes: c.notes
       })),
-      subtotal: cartSubtotal,
-      tax: cartTax,
-      total: cartTotal,
+      subtotal: 0,
+      tax: 0,
+      total: 0,
       status: 'Received',
-      paymentMethod,
+      paymentMethod: method,
       paymentStatus: 'Paid',
-      transactionId: `TXN-${paymentMethod.replace(/\s+/g, '').toUpperCase()}-${Math.floor(10000 + Math.random() * 90000)}`,
+      transactionId: `ORD-${Date.now()}`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -297,6 +293,53 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     clearCart();
     return newOrder;
   };
+
+  // Directly place an order for a specific table (useful for quick testing and staff direct entry)
+  const createDirectOrder = useCallback((tableNumber: number, itemsList?: { id: string; name: string; quantity: number }[]): Order => {
+    const itemsToOrder = itemsList && itemsList.length > 0 ? itemsList : [
+      { id: 'item-1', name: 'Special Basmati Ambur Chicken Biryani', quantity: 2 },
+      { id: 'item-2', name: 'Chicken 65', quantity: 1 }
+    ];
+    const orderNum = `#THS-${Math.floor(100 + Math.random() * 900)}`;
+    const newOrder: Order = {
+      id: `ord-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      orderNumber: orderNum,
+      tableNumber,
+      items: itemsToOrder.map(it => ({
+        id: it.id,
+        name: it.name,
+        price: 0,
+        quantity: it.quantity
+      })),
+      subtotal: 0,
+      tax: 0,
+      total: 0,
+      status: 'Received',
+      paymentMethod: 'Direct Table Order',
+      paymentStatus: 'Paid',
+      transactionId: `TST-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    setOrders(prev => {
+      const updatedOrders = [newOrder, ...prev];
+      localStorage.setItem(STORAGE_KEY_ORDERS, JSON.stringify(updatedOrders));
+      setTables(tPrev => {
+        const updatedTables = computeTablesFromOrders(tPrev, updatedOrders);
+        localStorage.setItem(STORAGE_KEY_TABLES, JSON.stringify(updatedTables));
+        broadcastSync('UPDATE_TABLES', updatedTables);
+        return updatedTables;
+      });
+      return updatedOrders;
+    });
+
+    broadcastSync('NEW_ORDER', newOrder);
+    if (soundEnabled) {
+      sounds.playPaymentSuccess();
+    }
+    return newOrder;
+  }, [broadcastSync, soundEnabled]);
 
   // Owner changes order status
   const updateOrderStatus = (orderId: string, status: OrderStatus) => {
@@ -362,6 +405,11 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return Number(tableOrders.reduce((sum, o) => sum + (o.total || 0), 0).toFixed(2));
   }, [orders]);
 
+  const getTableTotalItems = useCallback((tableNum: number) => {
+    const tableOrders = orders.filter(o => o.tableNumber === tableNum);
+    return tableOrders.reduce((sum, o) => sum + o.items.reduce((iSum, it) => iSum + (it.quantity || 0), 0), 0);
+  }, [orders]);
+
   const getTableOrders = useCallback((tableNum: number) => {
     return orders.filter(o => o.tableNumber === tableNum);
   }, [orders]);
@@ -394,17 +442,15 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // Aggregate yearly revenue including live placed orders
   const yearlyRevenue = useMemo(() => {
     const currentYear = new Date().getFullYear();
-    const liveOrdersTotal = orders.reduce((sum, o) => sum + o.total, 0);
+    const liveOrdersTotal = orders.reduce((sum, o) => sum + (o.total || 0), 0);
 
     return INITIAL_YEARLY_REVENUE.map(yr => {
       if (yr.year === currentYear) {
         return {
           ...yr,
-          totalRevenue: Number((yr.totalRevenue + liveOrdersTotal).toFixed(2)),
+          totalRevenue: Number(((yr.totalRevenue || 0) + liveOrdersTotal).toFixed(2)),
           totalOrders: yr.totalOrders + orders.length,
-          averageOrderValue: (yr.totalOrders + orders.length) > 0
-            ? Number(((yr.totalRevenue + liveOrdersTotal) / (yr.totalOrders + orders.length)).toFixed(2))
-            : 0
+          averageOrderValue: 0
         };
       }
       return yr;
@@ -429,6 +475,7 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         cartTotal,
         cartItemCount,
         placeOrder,
+        createDirectOrder,
         updateOrderStatus,
         updateItemPrice,
         updateMenuItem,
@@ -437,6 +484,7 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         toggleItemAvailability,
         yearlyRevenue,
         getTableRevenue,
+        getTableTotalItems,
         getTableOrders,
         resetAllTablesRevenue,
         resetTableRevenue,

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { useRestaurant } from '@/context/RestaurantContext';
 import { useAuth, UserRole } from '@/context/AuthContext';
 import { LoginModal } from '@/components/auth/LoginModal';
@@ -35,6 +36,8 @@ export const Navbar: React.FC = () => {
   } = useRestaurant();
 
   const { user, isAuthenticated, logout } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
 
   const [loginTarget, setLoginTarget] = useState<UserRole | null>(null);
 
@@ -43,6 +46,9 @@ export const Navbar: React.FC = () => {
   const handleViewClick = (view: 'customer' | 'owner' | 'admin') => {
     if (view === 'customer') {
       setActiveView('customer');
+      if (pathname !== '/' && pathname !== '/customer') {
+        router.push('/');
+      }
       return;
     }
 
@@ -51,6 +57,10 @@ export const Navbar: React.FC = () => {
     // Already authenticated with correct role
     if (isAuthenticated && user?.role === requiredRole) {
       setActiveView(view);
+      const targetPath = view === 'admin' ? '/admin' : '/owner';
+      if (pathname !== targetPath) {
+        router.push(targetPath);
+      }
       return;
     }
 
@@ -68,12 +78,15 @@ export const Navbar: React.FC = () => {
     if (!loginTarget) return;
     const view = loginTarget === 'ADMIN' ? 'admin' : 'owner';
     setActiveView(view);
+    const targetPath = view === 'admin' ? '/admin' : '/owner';
+    router.push(targetPath);
     setLoginTarget(null);
   };
 
   const handleLogout = () => {
     logout();
     setActiveView('customer');
+    router.push('/');
   };
 
   return (
@@ -95,7 +108,14 @@ export const Navbar: React.FC = () => {
         }}
       >
         {/* Brand / Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div
+          onClick={() => {
+            setActiveView('customer');
+            router.push('/');
+          }}
+          style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
+          title="Return to Customer Ordering"
+        >
           <div
             style={{
               width: '40px',

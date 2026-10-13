@@ -6,16 +6,13 @@ import { Order, OrderStatus, MenuItem } from '@/types/restaurant';
 import {
   ChefHat,
   TrendingUp,
-  DollarSign,
   UtensilsCrossed,
   Clock,
   CheckCircle,
   AlertCircle,
-  Edit2,
   Edit3,
   Trash2,
   Plus,
-  Save,
   X,
   Search,
   Users,
@@ -33,13 +30,12 @@ export const OwnerView: React.FC = () => {
     orders,
     menuItems,
     updateOrderStatus,
-    updateItemPrice,
     updateMenuItem,
     addMenuItem,
     removeMenuItem,
     toggleItemAvailability,
     yearlyRevenue,
-    getTableRevenue,
+    getTableTotalItems,
     getTableOrders,
     resetAllTablesRevenue,
     resetTableRevenue
@@ -48,10 +44,6 @@ export const OwnerView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'orders' | 'tables' | 'menu' | 'yearly'>('orders');
   const [selectedTableForDetails, setSelectedTableForDetails] = useState<number | null>(null);
   const [editingDishItem, setEditingDishItem] = useState<MenuItem | null>(null);
-
-  // Price editing state
-  const [editingItemId, setEditingItemId] = useState<string | null>(null);
-  const [editingPrice, setEditingPrice] = useState<string>('');
 
   // Add Item Modal state
   const [isAddItemOpen, setIsAddItemOpen] = useState(false);
@@ -71,34 +63,22 @@ export const OwnerView: React.FC = () => {
     return orders.filter(o => o.status === 'Completed');
   }, [orders]);
 
-  // Overall today's metrics
-  const todayRevenue = useMemo(() => {
-    return Number(orders.reduce((sum, o) => sum + o.total, 0).toFixed(2));
+  // Overall today's items count
+  const todayTotalItems = useMemo(() => {
+    return orders.reduce((sum, o) => sum + o.items.reduce((iSum, it) => iSum + (it.quantity || 0), 0), 0);
   }, [orders]);
-
-  const handleStartEditPrice = (item: MenuItem) => {
-    setEditingItemId(item.id);
-    setEditingPrice(item.price.toString());
-  };
-
-  const handleSavePrice = (itemId: string) => {
-    const val = parseFloat(editingPrice);
-    if (!isNaN(val) && val > 0) {
-      updateItemPrice(itemId, val);
-    }
-    setEditingItemId(null);
-  };
 
   const handleCreateItem = (dishData: {
     name: string;
     category: string;
     description: string;
-    price: number;
+    price?: number;
     dietary: 'veg' | 'non-veg' | 'vegan';
     image: string;
   }) => {
     addMenuItem({
       ...dishData,
+      price: 0,
       rating: 4.8,
       isAvailable: true,
       preparationTimeMinutes: 15
@@ -109,12 +89,12 @@ export const OwnerView: React.FC = () => {
     name: string;
     category: string;
     description: string;
-    price: number;
+    price?: number;
     dietary: 'veg' | 'non-veg' | 'vegan';
     image: string;
   }) => {
     if (editingDishItem) {
-      updateMenuItem(editingDishItem.id, dishData);
+      updateMenuItem(editingDishItem.id, { ...dishData, price: 0 });
       setEditingDishItem(null);
     }
   };
@@ -157,7 +137,7 @@ export const OwnerView: React.FC = () => {
           <div>
             <h1 style={{ fontSize: '22px', fontWeight: 800 }}>Restaurant Owner Dashboard</h1>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-              Kitchen display, 4-table revenue tracking, and dynamic item pricing
+              Kitchen display, 4-table order tracking, and master menu catalog
             </p>
           </div>
         </div>
@@ -171,9 +151,9 @@ export const OwnerView: React.FC = () => {
             </div>
           </div>
           <div style={{ background: 'var(--bg-card)', padding: '10px 18px', borderRadius: 'var(--radius-md)', border: '1px solid var(--glass-border)' }}>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Today&apos;s Revenue</div>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Items Ordered</div>
             <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--color-accent)' }}>
-              ₹{todayRevenue.toFixed(2)}
+              {todayTotalItems} items
             </div>
           </div>
         </div>
@@ -225,7 +205,7 @@ export const OwnerView: React.FC = () => {
           }}
         >
           <Users size={16} />
-          <span>Particular Table Revenue</span>
+          <span>Particular Table Items</span>
         </button>
 
         <button
@@ -243,8 +223,8 @@ export const OwnerView: React.FC = () => {
             border: activeTab === 'menu' ? '1px solid var(--color-primary)' : '1px solid var(--glass-border)'
           }}
         >
-          <DollarSign size={16} />
-          <span>Items &amp; Price Controls</span>
+          <Layers size={16} />
+          <span>Menu Items Catalog</span>
         </button>
 
         <button
@@ -263,7 +243,7 @@ export const OwnerView: React.FC = () => {
           }}
         >
           <TrendingUp size={16} />
-          <span>Yearly Revenue Analytics</span>
+          <span>Yearly Order Analytics</span>
         </button>
       </div>
 
@@ -353,11 +333,13 @@ export const OwnerView: React.FC = () => {
                       </div>
                       {order.items.map((it, idx) => (
                         <div key={idx} style={{ marginBottom: '8px', paddingBottom: idx !== order.items.length - 1 ? '6px' : '0', borderBottom: idx !== order.items.length - 1 ? '1px dashed var(--glass-border)' : 'none' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 600 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', fontWeight: 600 }}>
                             <span>
                               <strong style={{ color: 'var(--color-primary)' }}>{it.quantity}x</strong> {it.name}
                             </span>
-                            <span>₹{(it.price * it.quantity).toFixed(2)}</span>
+                            <span style={{ fontSize: '12px', background: 'rgba(255, 94, 58, 0.15)', color: 'var(--color-primary)', padding: '2px 8px', borderRadius: '4px' }}>
+                              {it.quantity} qty
+                            </span>
                           </div>
                           {it.notes && (
                             <div style={{ fontSize: '12px', color: 'var(--color-warning)', fontStyle: 'italic', marginTop: '2px' }}>
@@ -368,13 +350,13 @@ export const OwnerView: React.FC = () => {
                       ))}
                     </div>
 
-                    {/* Payment Info */}
+                    {/* Order Details */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', fontSize: '13px' }}>
                       <span style={{ color: 'var(--text-secondary)' }}>
-                        Paid via <strong style={{ color: '#fff' }}>{order.paymentMethod}</strong>
+                        Order Type: <strong style={{ color: '#fff' }}>{order.paymentMethod || 'Dine-In'}</strong>
                       </span>
-                      <span style={{ fontWeight: 800, fontSize: '16px', color: 'var(--color-accent)' }}>
-                        ₹{order.total.toFixed(2)}
+                      <span style={{ fontWeight: 800, fontSize: '14px', color: 'var(--color-accent)' }}>
+                        {order.items.reduce((s, it) => s + (it.quantity || 0), 0)} items
                       </span>
                     </div>
 
@@ -430,19 +412,19 @@ export const OwnerView: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 2: PARTICULAR TABLE REVENUE */}
+      {/* TAB 2: PARTICULAR TABLE ITEMS */}
       {activeTab === 'tables' && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <div>
-              <h2 style={{ fontSize: '18px', fontWeight: 800 }}>Table-Wise Financial Revenue</h2>
+              <h2 style={{ fontSize: '18px', fontWeight: 800 }}>Table-Wise Items Ordered</h2>
               <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                Granular revenue performance breakdown for Tables 1 to 4
+                Granular items and order performance breakdown for Tables 1 to 4
               </p>
             </div>
             <button
               onClick={() => {
-                if (confirm('Reset all tables revenue to ₹0?')) {
+                if (confirm('Reset all tables orders and items count to 0?')) {
                   resetAllTablesRevenue();
                 }
               }}
@@ -450,15 +432,14 @@ export const OwnerView: React.FC = () => {
               style={{ fontSize: '12px', padding: '6px 12px', color: 'var(--color-danger)', borderColor: 'rgba(239, 68, 68, 0.3)' }}
             >
               <RotateCcw size={13} />
-              <span>Reset All Tables to ₹0</span>
+              <span>Reset All Tables Orders</span>
             </button>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '24px' }}>
             {tables.map(tbl => {
               const tableOrdersList = getTableOrders(tbl.tableNumber);
-              const totalRev = getTableRevenue(tbl.tableNumber);
-              const avgSpend = tableOrdersList.length > 0 ? totalRev / tableOrdersList.length : 0;
+              const totalItems = getTableTotalItems(tbl.tableNumber);
 
               return (
                 <div
@@ -494,16 +475,16 @@ export const OwnerView: React.FC = () => {
 
                   <div style={{ marginBottom: '16px' }}>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                      Table Total Revenue
+                      Total Items Ordered
                     </div>
                     <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--color-accent)', marginTop: '2px' }}>
-                      ₹{totalRev.toFixed(2)}
+                      {totalItems} items
                     </div>
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-secondary)', borderTop: '1px solid var(--glass-border)', paddingTop: '10px', marginBottom: '12px' }}>
                     <div>Orders: <strong style={{ color: '#fff' }}>{tableOrdersList.length}</strong></div>
-                    <div>Avg: <strong style={{ color: '#fff' }}>₹{avgSpend.toFixed(2)}</strong></div>
+                    <div>Varieties: <strong style={{ color: '#fff' }}>{tableOrdersList.reduce((acc, o) => acc + o.items.length, 0)}</strong></div>
                   </div>
 
                   <div style={{ display: 'flex', gap: '8px' }}>
@@ -517,7 +498,7 @@ export const OwnerView: React.FC = () => {
                     </button>
                     <button
                       onClick={() => {
-                        if (confirm(`Reset Table ${tbl.tableNumber} revenue to ₹0?`)) {
+                        if (confirm(`Reset Table ${tbl.tableNumber} orders?`)) {
                           resetTableRevenue(tbl.tableNumber);
                         }
                       }}
@@ -534,10 +515,10 @@ export const OwnerView: React.FC = () => {
                         alignItems: 'center',
                         gap: '4px'
                       }}
-                      title="Reset this table to ₹0"
+                      title="Reset this table's orders"
                     >
                       <RotateCcw size={12} />
-                      <span>Reset ₹0</span>
+                      <span>Reset Table</span>
                     </button>
                   </div>
                 </div>
@@ -553,7 +534,7 @@ export const OwnerView: React.FC = () => {
                   <div>
                     <h3 style={{ fontSize: '18px', fontWeight: 800 }}>Table #{selectedTableForDetails} History</h3>
                     <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                      All recorded customer orders from this table
+                      Total Items Ordered: <strong style={{ color: 'var(--color-accent)' }}>{getTableTotalItems(selectedTableForDetails)} items</strong>
                     </p>
                   </div>
                   <button onClick={() => setSelectedTableForDetails(null)} className="btn-icon" style={{ width: '32px', height: '32px' }}>
@@ -567,30 +548,33 @@ export const OwnerView: React.FC = () => {
                       No orders placed for this table yet.
                     </div>
                   ) : (
-                    getTableOrders(selectedTableForDetails).map(ord => (
-                      <div
-                        key={ord.id}
-                        style={{
-                          background: 'var(--bg-card)',
-                          borderRadius: 'var(--radius-md)',
-                          padding: '14px',
-                          marginBottom: '10px',
-                          border: '1px solid var(--glass-border)'
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                          <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--color-primary)' }}>{ord.orderNumber}</span>
-                          <span style={{ fontWeight: 800, fontSize: '14px', color: 'var(--color-accent)' }}>₹{ord.total.toFixed(2)}</span>
+                    getTableOrders(selectedTableForDetails).map(ord => {
+                      const ordItemCount = ord.items.reduce((s, it) => s + (it.quantity || 0), 0);
+                      return (
+                        <div
+                          key={ord.id}
+                          style={{
+                            background: 'var(--bg-card)',
+                            borderRadius: 'var(--radius-md)',
+                            padding: '14px',
+                            marginBottom: '10px',
+                            border: '1px solid var(--glass-border)'
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                            <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--color-primary)' }}>{ord.orderNumber}</span>
+                            <span style={{ fontWeight: 800, fontSize: '14px', color: 'var(--color-accent)' }}>{ordItemCount} items</span>
+                          </div>
+                          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                            {ord.items.map(i => `${i.quantity}x ${i.name}`).join(', ')}
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)' }}>
+                            <span>Type: {ord.paymentMethod || 'Dine-In'}</span>
+                            <span>Status: {ord.status}</span>
+                          </div>
                         </div>
-                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                          {ord.items.map(i => `${i.quantity}x ${i.name}`).join(', ')}
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)' }}>
-                          <span>Method: {ord.paymentMethod}</span>
-                          <span>Status: {ord.status}</span>
-                        </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>
@@ -599,14 +583,14 @@ export const OwnerView: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 3: MENU ITEMS & SET PRICE CONTROLS */}
+      {/* TAB 3: MENU ITEMS CATALOG */}
       {activeTab === 'menu' && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
             <div>
-              <h2 style={{ fontSize: '18px', fontWeight: 800 }}>Menu Pricing &amp; Item Control</h2>
+              <h2 style={{ fontSize: '18px', fontWeight: 800 }}>Menu Items Catalog</h2>
               <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                Set prices dynamically or add/remove dishes
+                Browse dishes and toggle active kitchen availability
               </p>
             </div>
 
@@ -641,7 +625,6 @@ export const OwnerView: React.FC = () => {
                     <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>Dish</th>
                     <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>Category</th>
                     <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>Diet</th>
-                    <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>Selling Price (₹)</th>
                     <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>In Stock</th>
                     <th style={{ padding: '12px 16px', color: 'var(--text-muted)', textAlign: 'right' }}>Actions</th>
                   </tr>
@@ -671,48 +654,6 @@ export const OwnerView: React.FC = () => {
                           <span className={`badge badge-${item.dietary}`}>
                             {item.dietary}
                           </span>
-                        </td>
-                        <td style={{ padding: '12px 16px' }}>
-                          {editingItemId === item.id ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <span style={{ fontWeight: 700 }}>₹</span>
-                              <input
-                                type="number"
-                                step="1"
-                                value={editingPrice}
-                                onChange={(e) => setEditingPrice(e.target.value)}
-                                style={{ width: '80px', padding: '4px 8px', fontSize: '13px' }}
-                                autoFocus
-                              />
-                              <button
-                                onClick={() => handleSavePrice(item.id)}
-                                style={{ padding: '6px', background: 'var(--color-accent)', borderRadius: '6px', color: '#fff' }}
-                                title="Save price"
-                              >
-                                <Save size={14} />
-                              </button>
-                              <button
-                                onClick={() => setEditingItemId(null)}
-                                style={{ padding: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '6px', color: '#fff' }}
-                              >
-                                <X size={14} />
-                              </button>
-                            </div>
-                          ) : (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span style={{ fontWeight: 800, fontSize: '15px', color: 'var(--color-primary)' }}>
-                                ₹{item.price.toFixed(2)}
-                              </span>
-                              <button
-                                onClick={() => handleStartEditPrice(item)}
-                                className="btn-icon"
-                                style={{ width: '28px', height: '28px' }}
-                                title="Set new price"
-                              >
-                                <Edit2 size={12} />
-                              </button>
-                            </div>
-                          )}
                         </td>
                         <td style={{ padding: '12px 16px' }}>
                           <button
@@ -759,14 +700,14 @@ export const OwnerView: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 4: YEARLY REVENUE ANALYTICS */}
+      {/* TAB 4: YEARLY ORDER ANALYTICS */}
       {activeTab === 'yearly' && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <div>
-              <h2 style={{ fontSize: '18px', fontWeight: 800 }}>Annual Revenue &amp; Growth</h2>
+              <h2 style={{ fontSize: '18px', fontWeight: 800 }}>Annual Orders &amp; Volume</h2>
               <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                Historical comparisons and monthly performance
+                Historical order comparisons and volume trends
               </p>
             </div>
 
@@ -795,16 +736,16 @@ export const OwnerView: React.FC = () => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
             <div className="glass-panel" style={{ padding: '20px' }}>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                {selectedYear} Total Revenue
+                Estimated Items Served
               </div>
               <div style={{ fontSize: '26px', fontWeight: 800, color: 'var(--color-accent)', marginTop: '4px' }}>
-                ₹{selectedYearData.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                {(selectedYearData.totalOrders * 3).toLocaleString()} items
               </div>
             </div>
 
             <div className="glass-panel" style={{ padding: '20px' }}>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                Total Diners Served
+                Total Orders Dispatched
               </div>
               <div style={{ fontSize: '26px', fontWeight: 800, color: '#fff', marginTop: '4px' }}>
                 {selectedYearData.totalOrders.toLocaleString()} orders
@@ -813,40 +754,40 @@ export const OwnerView: React.FC = () => {
 
             <div className="glass-panel" style={{ padding: '20px' }}>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                Average Order Value
+                Average Items Per Order
               </div>
               <div style={{ fontSize: '26px', fontWeight: 800, color: 'var(--color-secondary)', marginTop: '4px' }}>
-                ₹{selectedYearData.averageOrderValue.toFixed(2)}
+                3.2 items
               </div>
             </div>
           </div>
 
-          {/* Monthly Revenue Bars Chart */}
+          {/* Monthly Order Bars Chart */}
           <div className="glass-panel" style={{ padding: '24px' }}>
             <h3 style={{ fontSize: '16px', fontWeight: 800, marginBottom: '20px' }}>
-              {selectedYear} Monthly Revenue Breakdown
+              {selectedYear} Monthly Orders Breakdown
             </h3>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '8px', alignItems: 'flex-end', height: '200px' }}>
               {selectedYearData.monthlyBreakdown.map((m, i) => {
-                const maxRev = Math.max(...selectedYearData.monthlyBreakdown.map(x => x.revenue));
-                const heightPercent = (m.revenue / maxRev) * 100;
+                const maxOrders = Math.max(...selectedYearData.monthlyBreakdown.map(x => x.orders), 1);
+                const heightPercent = (m.orders / maxOrders) * 100;
 
                 return (
                   <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
                     <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                      ₹{(m.revenue / 100000).toFixed(1)}L
+                      {m.orders}
                     </div>
                     <div
                       style={{
                         width: '100%',
-                        height: `${heightPercent}%`,
+                        height: `${Math.max(heightPercent, 8)}%`,
                         background: 'linear-gradient(180deg, #FF5E3A 0%, #FFB300 100%)',
                         borderRadius: '6px 6px 0 0',
                         boxShadow: '0 2px 8px rgba(255, 94, 58, 0.25)',
                         transition: 'height 0.4s ease'
                       }}
-                      title={`${m.month}: ₹${m.revenue.toLocaleString()} (${m.orders} orders)`}
+                      title={`${m.month}: ${m.orders} orders`}
                     />
                     <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '6px', fontWeight: 600 }}>
                       {m.month}

@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useAuth, UserRole } from '@/context/AuthContext';
 import {
   Eye, EyeOff, Lock, Mail, ShieldCheck, ChefHat,
-  UtensilsCrossed, AlertCircle, Loader2, LogIn
+  UtensilsCrossed, AlertCircle, Loader2, LogIn, UserPlus, User, CheckCircle
 } from 'lucide-react';
 
 interface LoginModalProps {
@@ -14,37 +14,82 @@ interface LoginModalProps {
 }
 
 export const LoginModal: React.FC<LoginModalProps> = ({ requiredRole, onSuccess, onCancel }) => {
-  const { login } = useAuth();
+  const { login, register } = useAuth();
+  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [shake, setShake] = useState(false);
 
   const isAdmin = requiredRole === 'ADMIN';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password.trim()) {
-      setError('Please enter both email and password');
-      triggerShake();
-      return;
-    }
-
-    setIsLoading(true);
     setError(null);
+    setSuccessMsg(null);
 
-    const result = await login(email.trim(), password, requiredRole);
+    if (mode === 'login') {
+      if (!email.trim() || !password.trim()) {
+        setError('Please enter both email and password');
+        triggerShake();
+        return;
+      }
 
-    if (result.success) {
-      onSuccess();
+      setIsLoading(true);
+      const result = await login(email.trim(), password, requiredRole);
+
+      if (result.success) {
+        onSuccess();
+      } else {
+        setError(result.message || 'Invalid credentials');
+        triggerShake();
+      }
+      setIsLoading(false);
     } else {
-      setError(result.message || 'Invalid credentials');
-      triggerShake();
-    }
+      // Register mode for new user
+      if (!email.trim() || !password.trim()) {
+        setError('Please enter your email and a password');
+        triggerShake();
+        return;
+      }
 
-    setIsLoading(false);
+      if (password.length < 6) {
+        setError('Password must be at least 6 characters long');
+        triggerShake();
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        setError('Passwords do not match');
+        triggerShake();
+        return;
+      }
+
+      setIsLoading(true);
+      const result = await register({
+        email: email.trim(),
+        password,
+        displayName: displayName.trim() || undefined,
+        role: requiredRole,
+      });
+
+      if (result.success) {
+        setSuccessMsg('Account created successfully! Logging you in...');
+        setTimeout(() => {
+          onSuccess();
+        }, 600);
+      } else {
+        setError(result.message || 'Registration failed');
+        triggerShake();
+      }
+      setIsLoading(false);
+    }
   };
 
   const triggerShake = () => {
@@ -66,22 +111,23 @@ export const LoginModal: React.FC<LoginModalProps> = ({ requiredRole, onSuccess,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(0,0,0,0.75)',
+        background: 'rgba(0,0,0,0.78)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
+        padding: '16px',
       }}
       onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
       <div
         style={{
           width: '100%',
-          maxWidth: '420px',
-          margin: '20px',
+          maxWidth: '430px',
+          maxHeight: '92vh',
+          overflowY: 'auto',
           background: gradientBg,
           border: `1px solid ${accentColor}40`,
           borderRadius: '24px',
-          overflow: 'hidden',
-          boxShadow: `0 25px 60px rgba(0,0,0,0.6), 0 0 40px ${accentColor}20`,
+          boxShadow: `0 25px 60px rgba(0,0,0,0.65), 0 0 40px ${accentColor}20`,
           animation: shake ? 'loginShake 0.5s ease' : 'loginSlideIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)',
         }}
       >
@@ -90,7 +136,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ requiredRole, onSuccess,
           style={{
             background: `linear-gradient(135deg, ${accentColor}30 0%, ${accentColor}10 100%)`,
             borderBottom: `1px solid ${accentColor}30`,
-            padding: '32px 32px 24px',
+            padding: '28px 28px 20px',
             textAlign: 'center',
             position: 'relative',
           }}
@@ -106,79 +152,195 @@ export const LoginModal: React.FC<LoginModalProps> = ({ requiredRole, onSuccess,
           {/* Logo icon */}
           <div
             style={{
-              width: '72px', height: '72px',
-              borderRadius: '20px',
+              width: '64px', height: '64px',
+              borderRadius: '18px',
               background: `linear-gradient(135deg, ${accentColor} 0%, ${isAdmin ? '#6D28D9' : '#FFB300'} 100%)`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto 16px',
+              margin: '0 auto 14px',
               boxShadow: `0 8px 24px ${accentColor}50`,
             }}
           >
-            {isAdmin ? <ShieldCheck size={36} color="#fff" /> : <ChefHat size={36} color="#fff" />}
+            {isAdmin ? <ShieldCheck size={32} color="#fff" /> : <ChefHat size={32} color="#fff" />}
           </div>
 
           <h2 style={{
-            fontSize: '22px', fontWeight: 800, color: '#fff',
-            marginBottom: '6px', letterSpacing: '-0.02em',
+            fontSize: '21px', fontWeight: 800, color: '#fff',
+            marginBottom: '4px', letterSpacing: '-0.02em',
           }}>
             {isAdmin ? 'Admin Portal' : 'Owner Dashboard'}
           </h2>
 
-          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', margin: 0 }}>
-            {isAdmin
-              ? 'Sign in with your email to manage settings'
-              : 'Sign in with your email to access kitchen & analytics'
-            }
+          <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.55)', margin: 0 }}>
+            {mode === 'login'
+              ? (isAdmin ? 'Sign in with your email to manage settings' : 'Sign in to access kitchen orders & restaurant settings')
+              : (isAdmin ? 'Create a new admin account' : 'Register a new owner account to start managing your kitchen')}
           </p>
 
           {/* Role badge */}
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: '6px',
-            marginTop: '12px',
+            marginTop: '10px',
             background: `${accentColor}20`, border: `1px solid ${accentColor}40`,
-            borderRadius: '100px', padding: '4px 12px',
+            borderRadius: '100px', padding: '3px 10px',
           }}>
             <div style={{
               width: '6px', height: '6px', borderRadius: '50%',
               background: accentColor, boxShadow: `0 0 8px ${accentColor}`,
             }} />
-            <span style={{ fontSize: '11px', fontWeight: 700, color: accentColor, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-              {isAdmin ? 'Admin Access' : 'Owner Access'}
+            <span style={{ fontSize: '10px', fontWeight: 700, color: accentColor, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              {isAdmin ? 'Admin' : 'Owner'} {mode === 'login' ? 'Access' : 'Registration'}
             </span>
           </div>
         </div>
 
+        {/* Mode Switcher Tabs */}
+        <div style={{
+          display: 'flex',
+          background: 'rgba(255, 255, 255, 0.05)',
+          borderRadius: '12px',
+          padding: '4px',
+          margin: '18px 28px 0',
+          border: '1px solid rgba(255, 255, 255, 0.08)'
+        }}>
+          <button
+            type="button"
+            id="tab-sign-in"
+            onClick={() => { setMode('login'); setError(null); setSuccessMsg(null); }}
+            style={{
+              flex: 1,
+              padding: '8px 12px',
+              borderRadius: '8px',
+              border: 'none',
+              fontSize: '13px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              background: mode === 'login' ? accentColor : 'transparent',
+              color: mode === 'login' ? '#fff' : 'rgba(255,255,255,0.6)',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px'
+            }}
+          >
+            <LogIn size={14} />
+            <span>Sign In</span>
+          </button>
+          <button
+            type="button"
+            id="tab-new-user"
+            onClick={() => { setMode('register'); setError(null); setSuccessMsg(null); }}
+            style={{
+              flex: 1,
+              padding: '8px 12px',
+              borderRadius: '8px',
+              border: 'none',
+              fontSize: '13px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              background: mode === 'register' ? accentColor : 'transparent',
+              color: mode === 'register' ? '#fff' : 'rgba(255,255,255,0.6)',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px'
+            }}
+          >
+            <UserPlus size={14} />
+            <span>New User (Sign Up)</span>
+          </button>
+        </div>
+
         {/* Form */}
-        <form onSubmit={handleSubmit} style={{ padding: '28px 32px 32px' }}>
+        <form onSubmit={handleSubmit} style={{ padding: '20px 28px 28px' }}>
           {/* Error message */}
           {error && (
             <div
               style={{
                 display: 'flex', alignItems: 'center', gap: '10px',
-                background: 'rgba(239, 68, 68, 0.1)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                borderRadius: '12px', padding: '12px 14px',
-                marginBottom: '20px',
+                background: 'rgba(239, 68, 68, 0.12)',
+                border: '1px solid rgba(239, 68, 68, 0.35)',
+                borderRadius: '12px', padding: '10px 12px',
+                marginBottom: '16px',
                 animation: 'loginFadeIn 0.2s ease',
               }}
             >
               <AlertCircle size={16} color="#EF4444" style={{ flexShrink: 0 }} />
-              <span style={{ fontSize: '13px', color: '#EF4444', fontWeight: 500 }}>{error}</span>
+              <span style={{ fontSize: '12px', color: '#EF4444', fontWeight: 600 }}>{error}</span>
+            </div>
+          )}
+
+          {/* Success message */}
+          {successMsg && (
+            <div
+              style={{
+                display: 'flex', alignItems: 'center', gap: '10px',
+                background: 'rgba(16, 185, 129, 0.15)',
+                border: '1px solid rgba(16, 185, 129, 0.35)',
+                borderRadius: '12px', padding: '10px 12px',
+                marginBottom: '16px',
+                animation: 'loginFadeIn 0.2s ease',
+              }}
+            >
+              <CheckCircle size={16} color="#10B981" style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: '12px', color: '#10B981', fontWeight: 600 }}>{successMsg}</span>
+            </div>
+          )}
+
+          {/* Display Name (Only in Register Mode) */}
+          {mode === 'register' && (
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{
+                display: 'block', fontSize: '11px', fontWeight: 700,
+                color: 'rgba(255,255,255,0.6)', marginBottom: '6px',
+                textTransform: 'uppercase', letterSpacing: '0.06em',
+              }}>
+                Owner / Restaurant Name
+              </label>
+              <div style={{ position: 'relative' }}>
+                <User
+                  size={15} color={displayName ? accentColor : 'rgba(255,255,255,0.25)'}
+                  style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', transition: 'color 0.2s' }}
+                />
+                <input
+                  type="text"
+                  id="register-name"
+                  value={displayName}
+                  onChange={(e) => { setDisplayName(e.target.value); setError(null); }}
+                  placeholder="Enter owner or restaurant name"
+                  style={{
+                    width: '100%',
+                    padding: '11px 14px 11px 38px',
+                    background: 'rgba(255,255,255,0.06)',
+                    border: `1.5px solid ${displayName ? accentColor + '60' : 'rgba(255,255,255,0.1)'}`,
+                    borderRadius: '12px',
+                    color: '#fff',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    outline: 'none',
+                    transition: 'all 0.2s',
+                    boxSizing: 'border-box',
+                  }}
+                  onFocus={(e) => (e.target.style.border = `1.5px solid ${accentColor}`)}
+                  onBlur={(e) => (e.target.style.border = `1.5px solid ${displayName ? accentColor + '60' : 'rgba(255,255,255,0.1)'}`)}
+                />
+              </div>
             </div>
           )}
 
           {/* Email field */}
-          <div style={{ marginBottom: '18px' }}>
+          <div style={{ marginBottom: '14px' }}>
             <label style={{
-              display: 'block', fontSize: '12px', fontWeight: 600,
-              color: 'rgba(255,255,255,0.6)', marginBottom: '8px',
+              display: 'block', fontSize: '11px', fontWeight: 700,
+              color: 'rgba(255,255,255,0.6)', marginBottom: '6px',
               textTransform: 'uppercase', letterSpacing: '0.06em',
             }}>
               Email Address
             </label>
             <div style={{ position: 'relative' }}>
               <Mail
-                size={16} color={email ? accentColor : 'rgba(255,255,255,0.25)'}
+                size={15} color={email ? accentColor : 'rgba(255,255,255,0.25)'}
                 style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', transition: 'color 0.2s' }}
               />
               <input
@@ -191,12 +353,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({ requiredRole, onSuccess,
                 required
                 style={{
                   width: '100%',
-                  padding: '12px 14px 12px 40px',
+                  padding: '11px 14px 11px 38px',
                   background: 'rgba(255,255,255,0.06)',
                   border: `1.5px solid ${email ? accentColor + '60' : 'rgba(255,255,255,0.1)'}`,
                   borderRadius: '12px',
                   color: '#fff',
-                  fontSize: '15px',
+                  fontSize: '14px',
                   fontWeight: 500,
                   outline: 'none',
                   transition: 'all 0.2s',
@@ -209,17 +371,17 @@ export const LoginModal: React.FC<LoginModalProps> = ({ requiredRole, onSuccess,
           </div>
 
           {/* Password field */}
-          <div style={{ marginBottom: '26px' }}>
+          <div style={{ marginBottom: mode === 'register' ? '14px' : '22px' }}>
             <label style={{
-              display: 'block', fontSize: '12px', fontWeight: 600,
-              color: 'rgba(255,255,255,0.6)', marginBottom: '8px',
+              display: 'block', fontSize: '11px', fontWeight: 700,
+              color: 'rgba(255,255,255,0.6)', marginBottom: '6px',
               textTransform: 'uppercase', letterSpacing: '0.06em',
             }}>
-              Password
+              {mode === 'register' ? 'Create Password (min. 6 chars)' : 'Password'}
             </label>
             <div style={{ position: 'relative' }}>
               <Lock
-                size={16} color={password ? accentColor : 'rgba(255,255,255,0.25)'}
+                size={15} color={password ? accentColor : 'rgba(255,255,255,0.25)'}
                 style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', transition: 'color 0.2s' }}
               />
               <input
@@ -227,17 +389,17 @@ export const LoginModal: React.FC<LoginModalProps> = ({ requiredRole, onSuccess,
                 id="login-password"
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setError(null); }}
-                placeholder="Enter your password"
-                autoComplete="current-password"
+                placeholder={mode === 'register' ? 'Choose a secure password' : 'Enter your password'}
+                autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
                 required
                 style={{
                   width: '100%',
-                  padding: '12px 44px 12px 40px',
+                  padding: '11px 40px 11px 38px',
                   background: 'rgba(255,255,255,0.06)',
                   border: `1.5px solid ${password ? accentColor + '60' : 'rgba(255,255,255,0.1)'}`,
                   borderRadius: '12px',
                   color: '#fff',
-                  fontSize: '15px',
+                  fontSize: '14px',
                   fontWeight: 500,
                   outline: 'none',
                   transition: 'all 0.2s',
@@ -250,7 +412,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ requiredRole, onSuccess,
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 style={{
-                  position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
+                  position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
                   color: 'rgba(255,255,255,0.35)', padding: '4px',
                   background: 'none', border: 'none', cursor: 'pointer',
                   transition: 'color 0.2s',
@@ -258,48 +420,140 @@ export const LoginModal: React.FC<LoginModalProps> = ({ requiredRole, onSuccess,
                 onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
                 onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.35)')}
               >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
               </button>
             </div>
           </div>
+
+          {/* Confirm Password (Only in Register Mode) */}
+          {mode === 'register' && (
+            <div style={{ marginBottom: '22px' }}>
+              <label style={{
+                display: 'block', fontSize: '11px', fontWeight: 700,
+                color: 'rgba(255,255,255,0.6)', marginBottom: '6px',
+                textTransform: 'uppercase', letterSpacing: '0.06em',
+              }}>
+                Confirm Password
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Lock
+                  size={15} color={confirmPassword ? accentColor : 'rgba(255,255,255,0.25)'}
+                  style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', transition: 'color 0.2s' }}
+                />
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  id="register-confirm-password"
+                  value={confirmPassword}
+                  onChange={(e) => { setConfirmPassword(e.target.value); setError(null); }}
+                  placeholder="Re-enter your password"
+                  autoComplete="new-password"
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '11px 40px 11px 38px',
+                    background: 'rgba(255,255,255,0.06)',
+                    border: `1.5px solid ${confirmPassword ? accentColor + '60' : 'rgba(255,255,255,0.1)'}`,
+                    borderRadius: '12px',
+                    color: '#fff',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    outline: 'none',
+                    transition: 'all 0.2s',
+                    boxSizing: 'border-box',
+                  }}
+                  onFocus={(e) => (e.target.style.border = `1.5px solid ${accentColor}`)}
+                  onBlur={(e) => (e.target.style.border = `1.5px solid ${confirmPassword ? accentColor + '60' : 'rgba(255,255,255,0.1)'}`)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={{
+                    position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
+                    color: 'rgba(255,255,255,0.35)', padding: '4px',
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    transition: 'color 0.2s',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.35)')}
+                >
+                  {showConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Submit button */}
           <button
             type="submit"
             disabled={isLoading}
-            id={`${requiredRole.toLowerCase()}-login-btn`}
+            id={`${requiredRole.toLowerCase()}-submit-btn`}
             style={{
-              width: '100%', padding: '14px',
+              width: '100%', padding: '13px',
               background: isLoading
                 ? `${accentColor}80`
                 : `linear-gradient(135deg, ${accentColor} 0%, ${isAdmin ? '#6D28D9' : '#FFB300'} 100%)`,
-              color: '#fff', fontWeight: 700, fontSize: '15px',
+              color: '#fff', fontWeight: 700, fontSize: '14px',
               borderRadius: '12px', cursor: isLoading ? 'not-allowed' : 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
               boxShadow: isLoading ? 'none' : `0 6px 20px ${accentColor}40`,
               border: 'none',
               transition: 'all 0.2s',
-              transform: 'translateY(0)',
             }}
-            onMouseEnter={(e) => !isLoading && (e.currentTarget.style.transform = 'translateY(-2px)')}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
           >
-            {isLoading
-              ? <><Loader2 size={18} className="spin-icon" /> Signing in...</>
-              : <><LogIn size={18} /> Sign In</>
-            }
+            {isLoading ? (
+              <><Loader2 size={17} className="spin-icon" /> {mode === 'login' ? 'Signing in...' : 'Creating account...'}</>
+            ) : mode === 'login' ? (
+              <><LogIn size={17} /> Sign In</>
+            ) : (
+              <><UserPlus size={17} /> Create {isAdmin ? 'Admin' : 'Owner'} Account</>
+            )}
           </button>
+
+          {/* Mode Switch Helper Link */}
+          <div style={{ textAlign: 'center', marginTop: '14px' }}>
+            {mode === 'login' ? (
+              <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', margin: 0 }}>
+                New user?{' '}
+                <button
+                  type="button"
+                  onClick={() => { setMode('register'); setError(null); }}
+                  style={{
+                    background: 'none', border: 'none', color: accentColor,
+                    fontWeight: 700, cursor: 'pointer', padding: '0 4px',
+                    textDecoration: 'underline', fontSize: '12px'
+                  }}
+                >
+                  Create an {isAdmin ? 'Admin' : 'Owner'} account
+                </button>
+              </p>
+            ) : (
+              <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', margin: 0 }}>
+                Already have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => { setMode('login'); setError(null); }}
+                  style={{
+                    background: 'none', border: 'none', color: accentColor,
+                    fontWeight: 700, cursor: 'pointer', padding: '0 4px',
+                    textDecoration: 'underline', fontSize: '12px'
+                  }}
+                >
+                  Sign In instead
+                </button>
+              </p>
+            )}
+          </div>
 
           {/* Cancel button */}
           <button
             type="button"
             onClick={onCancel}
             style={{
-              width: '100%', padding: '12px', marginTop: '10px',
+              width: '100%', padding: '10px', marginTop: '12px',
               background: 'transparent',
-              color: 'rgba(255,255,255,0.4)', fontWeight: 600, fontSize: '14px',
+              color: 'rgba(255,255,255,0.4)', fontWeight: 600, fontSize: '13px',
               borderRadius: '12px', cursor: 'pointer',
-              border: '1px solid rgba(255,255,255,0.1)',
+              border: '1px solid rgba(255,255,255,0.08)',
               transition: 'all 0.2s',
             }}
             onMouseEnter={(e) => {
@@ -318,12 +572,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({ requiredRole, onSuccess,
         {/* Footer */}
         <div style={{
           borderTop: '1px solid rgba(255,255,255,0.06)',
-          padding: '14px 32px',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-          fontSize: '11px', color: 'rgba(255,255,255,0.25)',
+          padding: '12px 28px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+          fontSize: '11px', color: 'rgba(255,255,255,0.3)',
         }}>
           <UtensilsCrossed size={12} />
-          <span>The Hunger&apos;s Spot — Secure Portal</span>
+          <span>The Hunger&apos;s Spot — Secure Authentication</span>
         </div>
       </div>
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { supabase } from '@/lib/supabase';
 import bcrypt from 'bcryptjs';
+import { findLocalUser } from '@/lib/authStore';
 
 export async function POST(request: NextRequest) {
   try {
@@ -69,37 +70,66 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 2. Fallback to Prisma database table (public.users)
-    const user = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { email: identifier },
-          { username: identifier }
-        ]
-      },
-    });
+    // 2. Try Prisma database table (public.users)
+    try {
+      const user = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { email: identifier },
+            { username: identifier }
+          ]
+        },
+      });
 
-    if (user) {
-      // Check role if requiredRole is specified
-      if (requiredRole && user.role !== requiredRole) {
+      if (user) {
+        // Check role if requiredRole is specified
+        if (requiredRole && user.role !== requiredRole) {
+          return NextResponse.json(
+            { success: false, message: `Access denied. This account does not have ${requiredRole.toLowerCase()} privileges.` },
+            { status: 403 }
+          );
+        }
+
+        // Verify password hash
+        const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+
+        if (isPasswordValid) {
+          return NextResponse.json({
+            success: true,
+            user: {
+              id: user.id,
+              username: user.username,
+              email: user.email,
+              role: user.role,
+              displayName: user.displayName,
+            },
+          });
+        }
+      }
+    } catch (prismaErr) {
+      console.warn('[PRISMA LOGIN FALLBACK]', prismaErr);
+    }
+
+    // 3. Fallback to local persistent store (authStore)
+    const localUser = findLocalUser(identifier);
+    if (localUser) {
+      if (requiredRole && localUser.role !== requiredRole) {
         return NextResponse.json(
           { success: false, message: `Access denied. This account does not have ${requiredRole.toLowerCase()} privileges.` },
           { status: 403 }
         );
       }
 
-      // Verify password hash
-      const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
-
+      const isPasswordValid = await bcrypt.compare(password, localUser.passwordHash);
       if (isPasswordValid) {
         return NextResponse.json({
           success: true,
           user: {
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            role: user.role,
-            displayName: user.displayName,
+            id: localUser.id,
+            username: localUser.username,
+            email: localUser.email,
+            role: localUser.role,
+            displayName: localUser.displayName,
           },
         });
       }

@@ -17,7 +17,6 @@ import {
   QrCode,
   UtensilsCrossed,
   X,
-  CreditCard,
   CheckCircle,
   FileText,
   Edit3
@@ -35,9 +34,6 @@ export const CustomerView: React.FC = () => {
     addToCart,
     removeFromCart,
     updateCartQuantity,
-    cartSubtotal,
-    cartTax,
-    cartTotal,
     cartItemCount,
     orders,
     updateMenuItem
@@ -93,12 +89,12 @@ export const CustomerView: React.FC = () => {
     name: string;
     category: string;
     description: string;
-    price: number;
+    price?: number;
     dietary: 'veg' | 'non-veg' | 'vegan';
     image: string;
   }) => {
     if (editingDishItem) {
-      updateMenuItem(editingDishItem.id, dishData);
+      updateMenuItem(editingDishItem.id, { ...dishData, price: 0 });
       setEditingDishItem(null);
     }
   };
@@ -155,7 +151,7 @@ export const CustomerView: React.FC = () => {
               </span>
             </div>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-              {currentTable.label} • Instant mobile ordering &amp; online pay
+              {currentTable.label} • Instant mobile table ordering
             </p>
           </div>
         </div>
@@ -399,20 +395,22 @@ export const CustomerView: React.FC = () => {
                     {item.description}
                   </p>
 
-                  {/* Price & Add to Cart button */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
-                    <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--color-primary)' }}>
-                      ₹{item.price.toFixed(2)}
-                    </div>
+                  {/* Selection & Add to Cart button */}
+                  <div style={{ display: 'flex', justifyContent: qty > 0 ? 'space-between' : 'flex-end', alignItems: 'center', marginTop: 'auto' }}>
+                    {qty > 0 && (
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-accent)' }}>
+                        {qty} selected
+                      </span>
+                    )}
 
                     {qty === 0 ? (
                       <button
                         onClick={() => addToCart(item)}
                         className="btn-primary"
-                        style={{ padding: '8px 16px', fontSize: '13px', borderRadius: 'var(--radius-md)' }}
+                        style={{ padding: '8px 18px', fontSize: '13px', borderRadius: 'var(--radius-md)' }}
                       >
                         <Plus size={15} />
-                        <span>Add</span>
+                        <span>Select</span>
                       </button>
                     ) : (
                       <div
@@ -513,9 +511,8 @@ export const CustomerView: React.FC = () => {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontWeight: 800, fontSize: '18px' }}>₹{cartTotal.toFixed(2)}</span>
-              <span style={{ fontSize: '13px', background: 'rgba(255,255,255,0.2)', padding: '4px 10px', borderRadius: '8px', fontWeight: 600 }}>
-                View Cart →
+              <span style={{ fontSize: '13px', background: 'rgba(255,255,255,0.2)', padding: '6px 14px', borderRadius: '8px', fontWeight: 700 }}>
+                View Selected Items →
               </span>
             </div>
           </button>
@@ -573,8 +570,8 @@ export const CustomerView: React.FC = () => {
                     />
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '2px' }}>{item.name}</div>
-                      <div style={{ fontSize: '13px', color: 'var(--color-primary)', fontWeight: 700 }}>
-                        ₹{(item.price * quantity).toFixed(2)}
+                      <div style={{ fontSize: '12px', color: 'var(--color-primary)', fontWeight: 600 }}>
+                        {quantity} selected
                       </div>
                     </div>
 
@@ -610,7 +607,7 @@ export const CustomerView: React.FC = () => {
                 ))}
               </div>
 
-              {/* Bill Breakdown */}
+              {/* Selected Items Summary */}
               <div
                 style={{
                   background: 'var(--bg-card)',
@@ -620,21 +617,21 @@ export const CustomerView: React.FC = () => {
                   marginBottom: '20px'
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px', color: 'var(--text-secondary)' }}>
-                  <span>Item Subtotal</span>
-                  <span>₹{cartSubtotal.toFixed(2)}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '8px', color: 'var(--text-secondary)' }}>
+                  <span>Dining Table</span>
+                  <span style={{ fontWeight: 700, color: '#fff' }}>Table #{activeTableNumber}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '10px', color: 'var(--text-secondary)' }}>
-                  <span>GST (5% CGST + SGST)</span>
-                  <span>₹{cartTax.toFixed(2)}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '8px', color: 'var(--text-secondary)' }}>
+                  <span>Dish Varieties</span>
+                  <span style={{ fontWeight: 700, color: '#fff' }}>{cart.length} types</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '16px', fontWeight: 800, borderTop: '1px dashed var(--glass-border)', paddingTop: '10px' }}>
-                  <span>Grand Total</span>
-                  <span style={{ color: 'var(--color-accent)' }}>₹{cartTotal.toFixed(2)}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', fontWeight: 800, borderTop: '1px dashed var(--glass-border)', paddingTop: '10px' }}>
+                  <span>Total Items Selected</span>
+                  <span style={{ color: 'var(--color-accent)' }}>{cartItemCount} item{cartItemCount > 1 ? 's' : ''}</span>
                 </div>
               </div>
 
-              {/* Action Proceed to Pay */}
+              {/* Action Proceed to Confirm Order */}
               <button
                 onClick={() => {
                   setIsCartOpen(false);
@@ -643,8 +640,8 @@ export const CustomerView: React.FC = () => {
                 className="btn-primary"
                 style={{ width: '100%', padding: '14px', fontSize: '16px' }}
               >
-                <CreditCard size={18} />
-                <span>Proceed to Pay Online (₹{cartTotal.toFixed(2)})</span>
+                <CheckCircle size={18} />
+                <span>Confirm Order ({cartItemCount} item{cartItemCount > 1 ? 's' : ''})</span>
               </button>
             </div>
           </div>

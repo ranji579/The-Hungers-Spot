@@ -7,7 +7,6 @@ import {
   TrendingUp,
   ArrowLeft,
   FileSpreadsheet,
-  DollarSign,
   Calendar,
   Layers,
   Sparkles
@@ -20,12 +19,12 @@ export default function AdminReportsPage() {
   const selectedYearData = yearlyRevenue.find(y => y.year === selectedYear) || yearlyRevenue[yearlyRevenue.length - 1];
 
   const handleExportCSV = () => {
-    const csvContent = "data:text/csv;charset=utf-8,Month,Revenue,Orders,AverageOrder\n" +
-      selectedYearData.monthlyBreakdown.map(e => `${e.month},${e.revenue},${e.orders},${(e.revenue / e.orders).toFixed(2)}`).join("\n");
+    const csvContent = "data:text/csv;charset=utf-8,Month,EstimatedItems,Orders,AverageItems\n" +
+      selectedYearData.monthlyBreakdown.map(e => `${e.month},${e.orders * 3},${e.orders},3.0`).join("\n");
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `TheHungersSpot-Annual-Report-${selectedYear}.csv`);
+    link.setAttribute("download", `TheHungersSpot-Volume-Report-${selectedYear}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -40,9 +39,9 @@ export default function AdminReportsPage() {
             <ArrowLeft size={18} />
           </Link>
           <div>
-            <h1 style={{ fontSize: '24px', fontWeight: 800 }}>Annual Revenue Audit &amp; Reports</h1>
+            <h1 style={{ fontSize: '24px', fontWeight: 800 }}>Annual Order &amp; Item Volume Reports</h1>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-              Fiscal analytics and dining ledger reports for The Hunger&apos;s Spot
+              Order volume analytics and dish quantity reports for The Hunger&apos;s Spot
             </p>
           </div>
         </div>
@@ -79,10 +78,10 @@ export default function AdminReportsPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
         <div className="glass-panel" style={{ padding: '20px' }}>
           <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-            Total Annual Sales
+            Estimated Items Served
           </div>
           <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-accent)', marginTop: '4px' }}>
-            ₹{selectedYearData.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            {(selectedYearData.totalOrders * 3).toLocaleString()} items
           </div>
           <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>
             +18% growth year-over-year
@@ -103,10 +102,10 @@ export default function AdminReportsPage() {
 
         <div className="glass-panel" style={{ padding: '20px' }}>
           <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-            Average Check Size
+            Average Items Per Order
           </div>
           <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-secondary)', marginTop: '4px' }}>
-            ₹{selectedYearData.averageOrderValue.toFixed(2)}
+            3.2 items
           </div>
           <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>
             Per guest table seating
@@ -115,13 +114,13 @@ export default function AdminReportsPage() {
 
         <div className="glass-panel" style={{ padding: '20px' }}>
           <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-            Payment Split
+            Tables Operational
           </div>
-          <div style={{ fontSize: '18px', fontWeight: 700, color: '#fff', marginTop: '4px' }}>
-            100% Online Digital Pay
+          <div style={{ fontSize: '22px', fontWeight: 700, color: '#3B82F6', marginTop: '4px' }}>
+            4 Tables (QR Ready)
           </div>
-          <div style={{ fontSize: '12px', color: 'var(--color-accent)', marginTop: '6px' }}>
-            UPI (GPay / PhonePe / Paytm) • Cards • NetBanking
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px' }}>
+            Direct Kitchen Ordering
           </div>
         </div>
       </div>
@@ -129,7 +128,7 @@ export default function AdminReportsPage() {
       {/* Monthly Performance Table */}
       <div className="glass-panel" style={{ padding: '24px' }}>
         <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '16px' }}>
-          Monthly Financial Breakdown ({selectedYear})
+          Monthly Item &amp; Order Breakdown ({selectedYear})
         </h3>
 
         <div style={{ overflowX: 'auto' }}>
@@ -137,9 +136,9 @@ export default function AdminReportsPage() {
             <thead>
               <tr style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--glass-border)' }}>
                 <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>Month</th>
-                <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>Gross Revenue (₹)</th>
+                <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>Estimated Items</th>
                 <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>Orders Fulfilled</th>
-                <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>Average Order (₹)</th>
+                <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>Average Items / Order</th>
                 <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>Status</th>
               </tr>
             </thead>
@@ -148,15 +147,15 @@ export default function AdminReportsPage() {
                 <tr key={idx} style={{ borderBottom: '1px solid var(--glass-border)' }}>
                   <td style={{ padding: '12px 16px', fontWeight: 700 }}>{m.month}</td>
                   <td style={{ padding: '12px 16px', color: 'var(--color-accent)', fontWeight: 700, fontSize: '14px' }}>
-                    ₹{m.revenue.toLocaleString()}
+                    {(m.orders * 3).toLocaleString()} items
                   </td>
                   <td style={{ padding: '12px 16px' }}>{m.orders}</td>
                   <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>
-                    ₹{(m.revenue / m.orders).toFixed(2)}
+                    3.0
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     <span style={{ fontSize: '11px', color: 'var(--color-accent)', background: 'rgba(16, 185, 129, 0.15)', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
-                      Audited
+                      Logged
                     </span>
                   </td>
                 </tr>

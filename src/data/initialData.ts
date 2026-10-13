@@ -876,7 +876,8 @@ export const INITIAL_TABLES: TableInfo[] = [
     seats: 4,
     status: 'Vacant',
     totalRevenue: 0,
-    totalOrdersCount: 0
+    totalOrdersCount: 0,
+    totalItemsCount: 0
   },
   {
     tableNumber: 2,
@@ -884,7 +885,8 @@ export const INITIAL_TABLES: TableInfo[] = [
     seats: 4,
     status: 'Vacant',
     totalRevenue: 0,
-    totalOrdersCount: 0
+    totalOrdersCount: 0,
+    totalItemsCount: 0
   },
   {
     tableNumber: 3,
@@ -892,7 +894,8 @@ export const INITIAL_TABLES: TableInfo[] = [
     seats: 6,
     status: 'Vacant',
     totalRevenue: 0,
-    totalOrdersCount: 0
+    totalOrdersCount: 0,
+    totalItemsCount: 0
   },
   {
     tableNumber: 4,
@@ -900,7 +903,8 @@ export const INITIAL_TABLES: TableInfo[] = [
     seats: 4,
     status: 'Vacant',
     totalRevenue: 0,
-    totalOrdersCount: 0
+    totalOrdersCount: 0,
+    totalItemsCount: 0
   }
 ];
 

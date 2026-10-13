@@ -5,7 +5,7 @@ export interface MenuItem {
   name: string;
   category: string;
   description: string;
-  price: number;
+  price?: number;
   image: string;
   dietary: DietaryType;
   rating: number;
@@ -21,12 +21,12 @@ export interface CartItem {
 }
 
 export type OrderStatus = 'Received' | 'Preparing' | 'Served' | 'Completed';
-export type PaymentMethod = 'UPI (Google Pay / PhonePe / Paytm)' | 'Credit / Debit Card' | 'Net Banking';
+export type PaymentMethod = string;
 
 export interface OrderItem {
   id: string;
   name: string;
-  price: number;
+  price?: number;
   quantity: number;
   notes?: string;
 }
@@ -36,13 +36,13 @@ export interface Order {
   orderNumber: string;
   tableNumber: number;
   items: OrderItem[];
-  subtotal: number;
-  tax: number;
-  total: number;
+  subtotal?: number;
+  tax?: number;
+  total?: number;
   status: OrderStatus;
-  paymentMethod: PaymentMethod;
-  paymentStatus: 'Paid' | 'Pending';
-  transactionId: string;
+  paymentMethod?: string;
+  paymentStatus?: 'Paid' | 'Pending';
+  transactionId?: string;
   createdAt: string; // ISO string
   updatedAt: string;
 }
@@ -52,19 +52,22 @@ export interface TableInfo {
   label: string;
   seats: number;
   status: 'Vacant' | 'Occupied' | 'Billing';
-  totalRevenue: number;
+  totalRevenue?: number;
   totalOrdersCount: number;
+  totalItemsCount?: number;
   activeOrderId?: string;
 }
 
 export interface YearlyRevenueData {
   year: number;
-  totalRevenue: number;
+  totalRevenue?: number;
   totalOrders: number;
-  averageOrderValue: number;
+  totalItems?: number;
+  averageOrderValue?: number;
   monthlyBreakdown: {
     month: string;
-    revenue: number;
+    revenue?: number;
     orders: number;
+    items?: number;
   }[];
 }

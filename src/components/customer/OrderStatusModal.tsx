@@ -165,30 +165,44 @@ export const OrderStatusModal: React.FC<OrderStatusModalProps> = ({ orderId, onC
           </div>
 
           {/* Ordered Items Summary */}
-          <div
-            style={{
-              background: 'var(--bg-card)',
-              borderRadius: 'var(--radius-md)',
-              padding: '16px',
-              border: '1px solid var(--glass-border)',
-              marginBottom: '20px'
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <span style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600 }}>
-                Ordered Food ({order.items.length})
-              </span>
-              <span style={{ fontSize: '12px', color: 'var(--color-accent)', fontWeight: 600 }}>
-                ✓ {order.paymentMethod} (₹{order.total.toFixed(2)})
-              </span>
-            </div>
-            {order.items.map((it, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', padding: '4px 0' }}>
-                <span>{it.quantity}x {it.name}</span>
-                <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>₹{(it.price * it.quantity).toFixed(2)}</span>
+          {(() => {
+            const totalItemsInOrder = order.items.reduce((s, it) => s + (it.quantity || 0), 0);
+            return (
+              <div
+                style={{
+                  background: 'var(--bg-card)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '16px',
+                  border: '1px solid var(--glass-border)',
+                  marginBottom: '20px'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <span style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600 }}>
+                    Selected Dishes ({order.items.length})
+                  </span>
+                  <span style={{ fontSize: '12px', color: 'var(--color-accent)', fontWeight: 700 }}>
+                    {totalItemsInOrder} Items Selected
+                  </span>
+                </div>
+                {order.items.map((it, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', padding: '6px 0', borderBottom: i < order.items.length - 1 ? '1px solid var(--glass-border)' : 'none' }}>
+                    <span style={{ fontWeight: 600 }}>{it.name}</span>
+                    <span style={{
+                      fontWeight: 700,
+                      background: 'rgba(255, 94, 58, 0.15)',
+                      color: 'var(--color-primary)',
+                      padding: '2px 8px',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: '12px'
+                    }}>
+                      {it.quantity} qty
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            );
+          })()}
 
           <button onClick={onClose} className="btn-secondary" style={{ width: '100%', padding: '12px' }}>
             Close Tracker

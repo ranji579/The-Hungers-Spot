@@ -1,0 +1,56 @@
+[
+  {
+    "id": "user-admin-default",
+    "username": "admin",
+    "email": "admin@thehungersspot.com",
+    "passwordHash": "$2b$10$aSTWnU.PpYP77vOOOn16WuSro2a9egwj1UCdAiTm4jKV1xhbf9ICO",
+    "role": "ADMIN",
+    "displayName": "Super Admin",
+    "createdAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-owner-default",
+    "username": "owner",
+    "email": "owner@thehungersspot.com",
+    "passwordHash": "$2b$10$oW515qj2ee3LUWwqdlGEEO7mL4f.nlZQORIA9pXtWLzHGFle4OWmu",
+    "role": "OWNER",
+    "displayName": "Restaurant Owner",
+    "createdAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "user-1791823749458-33",
+    "username": "newowner",
+    "email": "newowner@thehungersspot.com",
+    "passwordHash": "$2b$10$eeHxRxIec1RKdHs9fpVIAuWtAFL7ppmxv70.63Qw9wijMHDKkGyfW",
+    "role": "OWNER",
+    "displayName": "New Owner Chef",
+    "createdAt": "2026-10-12T16:49:10.778Z"
+  },
+  {
+    "id": "user-1791876402670-658",
+    "username": "saran123",
+    "email": "saran123@gmail.com",
+    "passwordHash": "$2b$10$57Tj9uOBPdLrpdc/NWXgXeK58OXEd5/J2iFjxQ6CHLC/MGSl1l4ie",
+    "role": "OWNER",
+    "displayName": "saran",
+    "createdAt": "2026-10-13T07:26:45.095Z"
+  },
+  {
+    "id": "2d0c8bab-30a5-44e3-83c0-5fea0b7c49be",
+    "username": "saran1234",
+    "email": "saran1234@gmail.com",
+    "passwordHash": "$2b$10$JXi8hh4MAWqUoljAo0d2NuGIJo8pOYd5wvyUAP2Qxye8DitBDLAGe",
+    "role": "OWNER",
+    "displayName": "R saran",
+    "createdAt": "2026-10-13T07:50:32.614Z"
+  },
+  {
+    "id": "e15ff2b2-bbfd-4ec4-8d63-65bdce312304",
+    "username": "ranji123",
+    "email": "ranji123@gmail.com",
+    "passwordHash": "$2b$10$2dJrVQs4d/bBOLXDWM6cEOEVatokcNRJvHIryeY7vmA5kbK5i7zpO",
+    "role": "ADMIN",
+    "displayName": "Ranjith",
+    "createdAt": "2026-10-13T08:22:22.762Z"
+  }
+]

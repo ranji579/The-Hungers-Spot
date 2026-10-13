@@ -22,7 +22,7 @@ interface AddDishModalProps {
     name: string;
     category: string;
     description: string;
-    price: number;
+    price?: number;
     dietary: 'veg' | 'non-veg' | 'vegan';
     image: string;
   }) => void;
@@ -47,7 +47,6 @@ export const AddDishModal: React.FC<AddDishModalProps> = ({
 }) => {
   const [name, setName] = useState('');
   const [category, setCategory] = useState('Chicken Starters');
-  const [price, setPrice] = useState('');
   const [dietary, setDietary] = useState<'veg' | 'non-veg' | 'vegan'>('veg');
   const [description, setDescription] = useState('');
 
@@ -66,7 +65,6 @@ export const AddDishModal: React.FC<AddDishModalProps> = ({
       if (initialItem) {
         setName(initialItem.name);
         setCategory(initialItem.category);
-        setPrice(initialItem.price.toString());
         setDietary(initialItem.dietary);
         setDescription(initialItem.description);
         if (initialItem.image && initialItem.image.startsWith('data:')) {
@@ -83,7 +81,6 @@ export const AddDishModal: React.FC<AddDishModalProps> = ({
       } else {
         setName('');
         setCategory('Chicken Starters');
-        setPrice('');
         setDietary('veg');
         setDescription('');
         setImageSource('local');
@@ -138,7 +135,7 @@ export const AddDishModal: React.FC<AddDishModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !price) return;
+    if (!name.trim()) return;
 
     // Determine final image
     let finalImage = '';
@@ -156,7 +153,7 @@ export const AddDishModal: React.FC<AddDishModalProps> = ({
     onSubmit({
       name: name.trim(),
       category,
-      price: parseFloat(price) || 250,
+      price: 0,
       dietary,
       description: description.trim() || 'Chef signature specialty crafted with fresh local ingredients.',
       image: finalImage
@@ -199,45 +196,27 @@ export const AddDishModal: React.FC<AddDishModalProps> = ({
             />
           </div>
 
-          {/* Category & Price */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
-            <div>
-              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-                Category *
-              </label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                style={{ width: '100%', fontSize: '13px' }}
-              >
-                <option value="Chef's Special">Chef's Special</option>
-                <option value="Chicken Starters">Chicken Starters</option>
-                <option value="Mutton Starters">Mutton Starters</option>
-                <option value="Seafood Starters">Seafood Starters</option>
-                <option value="Chicken Gravies">Chicken Gravies</option>
-                <option value="Mutton Gravies">Mutton Gravies</option>
-                <option value="Seafood Curries">Seafood Curries</option>
-                <option value="Rice & Noodles">Rice &amp; Noodles</option>
-                <option value="Vegetarian Corner">Vegetarian Corner</option>
-                <option value="Breads & Rotis">Breads &amp; Rotis</option>
-              </select>
-            </div>
-
-            <div>
-              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-                Selling Price (₹ INR) *
-              </label>
-              <input
-                type="number"
-                step="1"
-                min="1"
-                required
-                placeholder="250"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                style={{ width: '100%', fontSize: '14px' }}
-              />
-            </div>
+          {/* Category */}
+          <div style={{ marginBottom: '14px' }}>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+              Category *
+            </label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              style={{ width: '100%', fontSize: '13px' }}
+            >
+              <option value="Chef's Special">Chef's Special</option>
+              <option value="Chicken Starters">Chicken Starters</option>
+              <option value="Mutton Starters">Mutton Starters</option>
+              <option value="Seafood Starters">Seafood Starters</option>
+              <option value="Chicken Gravies">Chicken Gravies</option>
+              <option value="Mutton Gravies">Mutton Gravies</option>
+              <option value="Seafood Curries">Seafood Curries</option>
+              <option value="Rice & Noodles">Rice &amp; Noodles</option>
+              <option value="Vegetarian Corner">Vegetarian Corner</option>
+              <option value="Breads & Rotis">Breads &amp; Rotis</option>
+            </select>
           </div>
 
           {/* Dietary Classification */}
