@@ -1,0 +1,13 @@
+{
+  "name": "generated-prisma",
+  "version": "1.0.0",
+  "main": "./client.ts",
+  "types": "./client.ts",
+  "exports": {
+    ".": "./client.ts",
+    "./client": "./client.ts",
+    "./browser": "./browser.ts",
+    "./enums": "./enums.ts",
+    "./models": "./models.ts"
+  }
+}
